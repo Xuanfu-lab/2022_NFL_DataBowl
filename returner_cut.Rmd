@@ -1,0 +1,211 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r}
+library(stringr)
+library('ggplot2')
+library('gganimate')
+library('cowplot')
+library('png')
+library('gifski')
+
+library('tidyverse') 
+library('lubridate') 
+library('beeswarm')  
+library('gganimate') 
+library('ggridges')  
+library('tidyr')
+```
+```{r}
+players=read.csv('players.csv')
+plays=read.csv('plays.csv')
+PFF_2018=read.csv('PFFScoutingData.csv')
+t_2018=read.csv('tracking2018.csv')
+games_2018=read.csv('games.csv')
+```
+```{r}
+plays_punt_2018=plays[plays$specialTeamsPlayType=='Punt',]
+plays_punt_2018$playcombination=paste(plays_punt_2018$playId, plays_punt_2018$gameId, sep='')
+t_2018$playcombination=paste(t_2018$playId, t_2018$gameId, sep='')
+t_2018_punt=subset(t_2018, t_2018$playcombination%in%plays_punt_2018$playcombination)
+```
+
+```{r returner_cut}
+#select returners
+t_2018returners=plays_punt_2018[!is.na(plays_punt_2018$returnerId), ]
+t_2018returned=t_2018returners[t_2018returners$specialTeamsResult=='Return', ]
+t_2018returnersid=unique(t_2018returned$returnerId)
+t_2018returnersid=gsub(";.*$","",t_2018returnersid) #Only select punt plays that are returned"
+players_2018returners=subset(players, players$nflId%in%t_2018returnersid, )
+t_2018PR=subset(t_2018_punt, t_2018_punt$nflId%in%players_2018returners$nflId, )
+t_2018PR$playcombination=paste(t_2018PR$playId,t_2018PR$gameId,sep='')
+t_2018returned$playcombination=paste(t_2018returned$playId, t_2018returned$gameId, sep='') #select the accurate punt play id"
+t_2018PR=subset(t_2018PR, t_2018PR$playcombination%in%t_2018returned$playcombination)
+```
+
+```{r}
+#only care about after returners receive the punt
+t_2018PR_after_received=data.frame()
+check=FALSE
+for (a in (1:nrow(t_2018PR))){
+  if (t_2018PR[a, ]$event=='punt_received'){
+    check=TRUE
+  }
+  if(t_2018PR[a, ]$frameId==1){
+    check=FALSE
+  }
+  if(check==TRUE){
+  t_2018PR_after_received=rbind(t_2018PR_after_received, t_2018PR[a, ])
+  }
+  }
+```
+
+```{r}
+#identifying cut, by player's acceleration change, formula (current frame acc-last frame acc)/(last frame acc), 
+#exclude the moment of receiving the punt
+t_2018PR_after_received$acceleration_percent_change=0
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$acceleration_percent_change=0
+  }
+  else{
+    t_2018PR_after_received[b, ]$acceleration_percent_change=(t_2018PR_after_received[b, ]$a-t_2018PR_after_received[b-1, ]$a)/(t_2018PR_after_received[b-1, ]$a)
+  }
+}
+```
+
+```{r}
+#create acceleration factor
+t_2018PR_after_received$x_change=0
+t_2018PR_after_received$y_change=0
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$x_change=0
+  }
+  else{
+    t_2018PR_after_received[b, ]$x_change=(t_2018PR_after_received[b, ]$x-t_2018PR_after_received[b-1, ]$x)
+  }
+}
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$y_change=0
+  }
+  else{
+    t_2018PR_after_received[b, ]$y_change=(t_2018PR_after_received[b, ]$y-t_2018PR_after_received[b-1, ]$y)
+  }
+}
+```
+
+```{r}
+#acceleration x vector and y vector
+t_2018PR_after_received$acc_x=0
+t_2018PR_after_received$acc_y=0
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$acc_x=0
+    t_2018PR_after_received[b, ]$acc_y=0
+  }
+  else{
+    t_2018PR_after_received[b, ]$acc_x=t_2018PR_after_received[b, ]$x_change-t_2018PR_after_received[b-1, ]$x_change
+    t_2018PR_after_received[b, ]$acc_y=t_2018PR_after_received[b, ]$y_change-t_2018PR_after_received[b-1, ]$y_change
+  }
+}
+```
+```{r}
+t_2018PR_after_received$acceleration_vector_mag=sqrt((t_2018PR_after_received$acc_x)^2+(t_2018PR_after_received$acc_y)^2)
+t_2018PR_after_received$acceleration_vector_angle=atan(t_2018PR_after_received$acc_x/t_2018PR_after_received$acc_y)*360/pi/2
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$acceleration_vector_angle=0
+  }
+}
+```
+
+
+
+
+identifying cuts
+
+```{r}
+t_2018PR_after_received$acceleration_vector_angle_change=0
+for (b in (1:nrow(t_2018PR_after_received))){
+  if (t_2018PR_after_received[b, ]$event=='punt_received'){
+    t_2018PR_after_received[b, ]$acceleration_vector_angle_change=0
+  }
+  else{
+    t_2018PR_after_received[b, ]$acceleration_vector_angle_change=(t_2018PR_after_received[b, ]$acceleration_vector_angle-t_2018PR_after_received[b-1, ]$acceleration_vector_angle)
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+example_play <- t_2018PR_after_received %>% filter(playcombination==25022018123000)
+## General field boundaries
+xmin <- 0
+xmax <- 160/3
+hash.right <- 38.35
+hash.left <- 12
+hash.width <- 3.3
+
+
+## Specific boundaries for a given play
+ymin <- max(round(min(example_play$x, na.rm = TRUE) - 10, -1), 0)
+ymax <- min(round(max(example_play$x, na.rm = TRUE) + 10, -1), 120)
+df_hash <- expand.grid(x = c(0, 23.36667, 29.96667, xmax), y = (10:110))
+df_hash <- df_hash %>% filter(!(floor(y %% 5) == 0))
+df_hash <- df_hash %>% filter(y < ymax, y > ymin)
+
+animate_play1 <- ggplot() +
+  scale_size_manual(values = c(6, 4, 6), guide = FALSE) + 
+  scale_shape_manual(values = c(21, 16, 21), guide = FALSE) +
+  scale_fill_manual(values = c("#e31837", "#654321", "#002244"), guide = FALSE) + 
+  scale_colour_manual(values = c("black", "#654321", "#c60c30"), guide = FALSE) + 
+  annotate("text", x = df_hash$x[df_hash$x < 55/2], 
+           y = df_hash$y[df_hash$x < 55/2], label = "_", hjust = 0, vjust = -0.2) + 
+  annotate("text", x = df_hash$x[df_hash$x > 55/2], 
+           y = df_hash$y[df_hash$x > 55/2], label = "_", hjust = 1, vjust = -0.2) + 
+  annotate("segment", x = xmin, 
+           y = seq(max(10, ymin), min(ymax, 110), by = 5), 
+           xend =  xmax, 
+           yend = seq(max(10, ymin), min(ymax, 110), by = 5)) + 
+  annotate("text", x = rep(hash.left, 11), y = seq(10, 110, by = 10), 
+                    label = c("G   ", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "   G"), 
+                    angle = 270, size = 4) + 
+  annotate("text", x = rep((xmax - hash.left), 11), y = seq(10, 110, by = 10), 
+           label = c("   G", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "G   "), 
+           angle = 90, size = 4) + 
+  annotate("segment", x = c(xmin, xmin, xmax, xmax), 
+           y = c(ymin, ymax, ymax, ymin), 
+           xend = c(xmin, xmax, xmax, xmin), 
+           yend = c(ymax, ymax, ymin, ymin), colour = "black") + 
+  geom_point(data = example_play, aes(x = (xmax-y), y = x, shape = team,
+                                 fill = team, group = nflId, size = team, colour = team), alpha = 0.7) + 
+  geom_text(data = example_play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", 
+            vjust = 0.36, size = 3.5) +
+  geom_segment(data=example_play, aes(x=(xmax-y),y=x, xend=(xmax-y)+acc_x, yend=x+acc_y), arrow = arrow(length=unit(0.5,"cm")))+
+  ylim(ymin, ymax) + 
+  coord_fixed() +  
+  theme_nothing() + 
+  transition_time(frameId)  +
+  ease_aes('linear') 
+
+## Ensure timing of play matches 10 frames-per-second
+play.length.ex <- length(unique(example_play$frameId))
+
+animate(animate_play1, fps = 3, nframe = play.length.ex)
+```
