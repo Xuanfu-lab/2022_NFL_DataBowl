@@ -30,7 +30,8 @@ games_2018=read.csv('games.csv')
 ```
 selecting punt plays only and give each play an unique id "playcombination"
 ```{r}
-plays_punt_2018=plays[plays$specialTeamsPlayType=='Punt',]
+plays_punt=plays[plays$specialTeamsPlayType=='Punt'|plays$specialTeamsPlayType=='Kickoff', ]
+plays_punt_2018=subset(plays_punt, floor(plays_punt$gameId/1000000)==2018)
 plays_punt_2018$playcombination=paste(plays_punt_2018$playId, plays_punt_2018$gameId, sep='')
 t_2018$playcombination=paste(t_2018$playId, t_2018$gameId, sep='')
 t_2018_punt=subset(t_2018, t_2018$playcombination%in%plays_punt_2018$playcombination)
@@ -74,5 +75,842 @@ for (a in 1:length(list_interval)){
 t_2018_punt_received=t_2018_punt[t_2018_punt$received_label==1, ]
 ```
 
+identifying tacklers
+要素：与returner之间没有其他队员阻挡
+且离returner距离不超过1码
 ```{r}
+#subsetting retuners
+t_2018returners=plays_punt_2018[!is.na(plays_punt_2018$returnerId), ]
+t_2018returned=t_2018returners[t_2018returners$specialTeamsResult=='Return', ]
+t_2018returnersid=unique(t_2018returned$returnerId)
+t_2018returnersid=gsub(";.*$","",t_2018returnersid) #Only select punt plays that are returned"
+players_2018returners=subset(players, players$nflId%in%t_2018returnersid, )
+```
+```{r}
+#returners label
+plays_punt_returned_2018=plays_punt_2018[plays_punt_2018$specialTeamsResult=='Return', ]
+t_2018_punt_received$returner_id=0
+playcombination_1=unique(t_2018_punt_received$playcombination)
+for(a in 1:length(playcombination_1)){
+  returner_id_1=plays_punt_returned_2018[plays_punt_returned_2018$playcombination==playcombination_1[a], ]$returnerId
+  t_2018_punt_received[t_2018_punt_received$playcombination==playcombination_1[a], ]$returner_id=returner_id_1
+} 
+```
+
+```{r}
+t_2018PR=subset(t_2018_punt_received, t_2018_punt_received$nflId==t_2018_punt_received$returner_id)
+t_2018PR$returner_id=gsub(";.*$","",t_2018PR$returner_id)
+t_2018_punt_received$returner_id=gsub(";.*$","",t_2018_punt_received$returner_id)
+```
+
+```{r}
+#selecting other players
+t_2018_other_players=subset(t_2018_punt_received, !(t_2018_punt_received$nflId%in%t_2018PR$nflId))
+#identifying tacklers for each frame of returners
+#tacklers condition: within one yard of the returner, closer than any teammates
+#the below code is to add returner's x and y coordinates for distance calculations for all players
+t_2018_other_players$returner_x_coord=NA
+t_2018_other_players$returner_y_coord=NA
+playcombination_1=unique(t_2018_punt_received$playcombination)
+for (a in 1:length(playcombination_1)){
+  the_combi=playcombination_1[a]
+  the_play=t_2018_punt_received[t_2018_punt_received$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for (b in 1:length(the_frame)){
+    the_frame_new=the_frame[b]
+    the_data=t_2018_punt_received[t_2018_punt_received$playcombination==the_combi & t_2018_punt_received$frameId==the_frame_new, ]
+    the_returner=subset(the_data, the_data$nflId==t_2018PR[t_2018PR$playcombination==the_combi, ]$returner_id[1])
+    if(nrow(the_returner)==0){
+      next
+    }
+    else
+    {
+    returner_x_coord_a=the_returner$x
+    returner_y_coord_a=the_returner$y
+    t_2018_other_players[t_2018_other_players$playcombination==the_combi & t_2018_other_players$frameId==the_frame_new, ]$returner_x_coord=returner_x_coord_a
+    t_2018_other_players[t_2018_other_players$playcombination==the_combi & t_2018_other_players$frameId==the_frame_new, ]$returner_y_coord=returner_y_coord_a
+    }
+  }
+}
+```
+Down to one yard
+```{r}
+t_2018_other_players$x_distance=t_2018_other_players$x-t_2018_other_players$returner_x_coord
+t_2018_other_players$y_distance=t_2018_other_players$y-t_2018_other_players$returner_y_coord
+t_2018_other_players$distance=sqrt(t_2018_other_players$x_distance*t_2018_other_players$x_distance+t_2018_other_players$y_distance*t_2018_other_players$y_distance)
+```
+```{r}
+t_2018_other_players1=t_2018_other_players[!is.na(t_2018_other_players$returner_x_coord), ]
+```
+```{r}
+tackle_frame_2018=subset(t_2018_other_players1, t_2018_other_players$distance<=1)
+tackle_frame_2018=subset(tackle_frame_2018, tackle_frame_2018$team!='football')
+```
+classify teammates and opponents
+```{r}
+tackle_frame_2018$returner_team=NA
+tackle_frame_2018$returner_teammates=NA
+playcombination_2=unique(tackle_frame_2018$playcombination)
+for (a in 1:length(playcombination_2)){
+  the_combi=playcombination_2[a]
+  the_play=tackle_frame_2018[tackle_frame_2018$playcombination==the_combi, ]
+  the_returner_team=t_2018PR[t_2018PR$playcombination==the_combi, ]$team[1]
+  tackle_frame_2018[tackle_frame_2018$playcombination==the_combi, ]$returner_team=the_returner_team
+}
+```
+```{r}
+tackle_frame_2018$returner_teammates=(tackle_frame_2018$team==tackle_frame_2018$returner_team)
+```
+
+
+
+```{r}
+write.csv(tackle_frame_2018, file='other_players.csv')
+write.csv(t_2018PR, file='returner.csv')
+```
+
+create a rectangle with width=tracking player's position at center, length=0.5, 0.25 extended each side of player's orientation(o), length being the distance between the potential tackler and the returner
+
+first add returner's orientation to the frame
+```{r}
+playcombination_3=unique((tackle_frame_2018$playcombination))
+tackle_frame_2018$returner_o=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2018[tackle_frame_2018$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    ro=t_2018PR[t_2018PR$playcombination==the_combi&t_2018PR$frameId==the_frame[b], ]$o
+    tackle_frame_2018[tackle_frame_2018$playcombination==the_combi&tackle_frame_2018$frameId==the_frame[b],  ]$returner_o=ro
+  }
+}
+```
+
+```{r}
+playcombination_3=unique((tackle_frame_2018$playcombination))
+tackle_frame_2018$returner_s=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2018[tackle_frame_2018$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    rs=t_2018PR[t_2018PR$playcombination==the_combi&t_2018PR$frameId==the_frame[b], ]$s
+    tackle_frame_2018[tackle_frame_2018$playcombination==the_combi&tackle_frame_2018$frameId==the_frame[b],  ]$returner_s=rs
+  }
+}
+```
+create the coordination of the rectangle
+```{r}
+half_length=0.25
+tackle_frame_2018$x1=NA
+tackle_frame_2018$y1=NA
+tackle_frame_2018$x2=NA
+tackle_frame_2018$y2=NA
+tackle_frame_2018$x3=NA
+tackle_frame_2018$y3=NA
+tackle_frame_2018$x4=NA
+tackle_frame_2018$y4=NA
+for (a in 1:nrow(tackle_frame_2018)){
+  tackle_frame_2018[a, ]$x1=tackle_frame_2018[a, ]$x+0.25*sin(tackle_frame_2018[a, ]$o*pi/180)
+  tackle_frame_2018[a, ]$y1=tackle_frame_2018[a, ]$y+0.25*cos(tackle_frame_2018[a, ]$o*pi/180)
+  tackle_frame_2018[a, ]$x2=tackle_frame_2018[a, ]$x-0.25*sin(tackle_frame_2018[a, ]$o*pi/180)
+  tackle_frame_2018[a, ]$y2=tackle_frame_2018[a, ]$y-0.25*cos(tackle_frame_2018[a, ]$o*pi/180)
+  tackle_frame_2018[a, ]$x3=tackle_frame_2018[a, ]$returner_x_coord+0.25*sin(tackle_frame_2018[a, ]$returner_o*pi/180)
+  tackle_frame_2018[a, ]$y3=tackle_frame_2018[a, ]$returner_y_coord+0.25*cos(tackle_frame_2018[a, ]$returner_o*pi/180)
+  tackle_frame_2018[a, ]$x4=tackle_frame_2018[a, ]$returner_x_coord-0.25*sin(tackle_frame_2018[a, ]$returner_o*pi/180)
+  tackle_frame_2018[a, ]$y4=tackle_frame_2018[a, ]$returner_y_coord-0.25*cos(tackle_frame_2018[a, ]$returner_o*pi/180)
+}
+```
+determine if points are inside of the quadrilateral
+```{r}
+the_potential_tackler=tackle_frame_2018[tackle_frame_2018$team!=tackle_frame_2018$returner_team, ]
+the_potential_blocker=tackle_frame_2018[tackle_frame_2018$team==tackle_frame_2018$returner_team, ]
+```
+
+```{r}
+library(ptinpoly)
+the_potential_tackler$is_tackler=NA
+the_potential_blocker$in_the_area=NA
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  if(dim(the_blocker)[1]==0){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+  else{
+    for(b in 1:nrow(the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ])){
+      x_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$x
+      y_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$y
+      #determine if(x,y) is in the quadrilateral
+      quad=rbind(
+        c(the_potential_tackler[a, ]$x1, the_potential_tackler[a, ]$y1),
+        c(the_potential_tackler[a, ]$x2, the_potential_tackler[a, ]$y2),
+        c(the_potential_tackler[a, ]$x3, the_potential_tackler[a, ]$y3),
+        c(the_potential_tackler[a, ]$x4, the_potential_tackler[a, ]$y4)
+      )
+      point=rbind(c(x_blocker, y_blocker))
+      result=pip2d(quad, point)
+      if(result==1){
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=1
+      }
+      else{
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=0
+      }
+    }
+  }
+}
+
+for(a in 1:nrow(the_potential_blocker)){
+  if(is.na(the_potential_blocker[a, ]$in_the_area)){
+    the_potential_blocker[a, ]$in_the_area=0
+  }
+}
+
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  g=dim(the_blocker)[1]
+  if(g>0){
+    check=any(the_blocker$in_the_area==1)
+    }
+  else{
+    check=FALSE
+  }
+  if(check==TRUE){
+    the_potential_tackler[a, ]$is_tackler=0
+  }
+  if(check==FALSE){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+}
+```
+
+```{r}
+the_potential_tackler_2018=the_potential_tackler[the_potential_tackler$is_tackler==1, ]
+t_2018PR$has_tackler=0
+t_2018PR$frameplaycombi=paste(t_2018PR$frameId, t_2018PR$playcombination, sep='')
+the_potential_tackler_2018$frameplaycombi=paste(the_potential_tackler_2018$frameId, the_potential_tackler_2018$playcombination, sep='')
+for(a in 1:nrow(t_2018PR)){
+  if(t_2018PR[a, ]$frameplaycombi%in%the_potential_tackler_2018$frameplaycombi){
+    t_2018PR[a, ]$has_tackler=1
+  }
+}
+```
+```{r}
+t_2018PR=t_2018PR[t_2018PR$has_tackler==1, ]
+```
+
+```{r}
+write.csv(the_potential_tackler_2018, file='tacklers_2018.csv')
+write.csv(t_2018PR, file='returner_2018.csv')
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+2019
+
+
+```{r}
+PFF_2019=read.csv('PFFScoutingData.csv')
+t_2019=read.csv('tracking2019.csv')
+games_2019=read.csv('games.csv')
+```
+selecting punt plays only and give each play an unique id "playcombination"
+```{r}
+plays_punt_2019=subset(plays_punt, floor(plays_punt$gameId/1000000)==2019)
+plays_punt_2019$playcombination=paste(plays_punt_2019$playId, plays_punt_2019$gameId, sep='')
+t_2019$playcombination=paste(t_2019$playId, t_2019$gameId, sep='')
+t_2019_punt=subset(t_2019, t_2019$playcombination%in%plays_punt_2019$playcombination)
+```
+
+only cares about punt plays after received
+```{r}
+plays_punt_returned_2019=plays_punt_2019[plays_punt_2019$specialTeamsResult=="Return", ]
+t_2019_punt=subset(t_2019_punt, t_2019_punt$playcombination%in%plays_punt_returned_2019$playcombination)
+t_2019_punt$row_number=c(1:nrow(t_2019_punt))
+```
+
+
+```{r}
+t_2019_punt$received_label=0
+received_punt=subset(t_2019_punt, t_2019_punt$event=='punt_received' |t_2019_punt$frameId==1)
+list_interval=list()
+for (a in (1:(nrow(received_punt)-1))){
+  beginning=received_punt[a, ]$row_number
+  end=received_punt[a+1, ]$row_number-1
+  interval=c(beginning:end)
+  if(a==1){
+    list_interval[[a]]=interval
+  }
+  else{
+    list_interval[[length(list_interval)+1]]=interval
+  }
+  }
+```
+```{r}
+for (a in 1:length(list_interval)){
+  if (a%%2==1){
+    t_2019_punt[list_interval[[a]], ]$received_label=0
+  }
+  else{
+    t_2019_punt[list_interval[[a]], ]$received_label=1
+  }
+}
+```
+```{r}
+t_2019_punt_received=t_2019_punt[t_2019_punt$received_label==1, ]
+```
+
+identifying tacklers
+要素：与returner之间没有其他队员阻挡
+且离returner距离不超过1码
+```{r}
+#subsetting retuners
+t_2019returners=plays_punt_2019[!is.na(plays_punt_2019$returnerId), ]
+t_2019returned=t_2019returners[t_2019returners$specialTeamsResult=='Return', ]
+t_2019returnersid=unique(t_2019returned$returnerId)
+t_2019returnersid=gsub(";.*$","",t_2019returnersid) #Only select punt plays that are returned"
+players_2019returners=subset(players, players$nflId%in%t_2019returnersid, )
+```
+```{r}
+#returners label
+plays_punt_returned_2019=plays_punt_2019[plays_punt_2019$specialTeamsResult=='Return', ]
+t_2019_punt_received$returner_id=0
+playcombination_1=unique(t_2019_punt_received$playcombination)
+for(a in 1:length(playcombination_1)){
+  returner_id_1=plays_punt_returned_2019[plays_punt_returned_2019$playcombination==playcombination_1[a], ]$returnerId
+  t_2019_punt_received[t_2019_punt_received$playcombination==playcombination_1[a], ]$returner_id=returner_id_1
+} 
+```
+
+```{r}
+t_2019PR=subset(t_2019_punt_received, t_2019_punt_received$nflId==t_2019_punt_received$returner_id)
+t_2019PR$returner_id=gsub(";.*$","",t_2019PR$returner_id)
+t_2019_punt_received$returner_id=gsub(";.*$","",t_2019_punt_received$returner_id)
+```
+```{r}
+f=rep(0, length(unique(t_2019_punt_received$playcombination)))
+for(a in 1:length(f)){
+  if(playcombination_1[a]%in%t_2019PR$playcombination){
+    f[a]=1
+  }
+}
+
+```
+
+```{r}
+#selecting other players
+t_2019_other_players=subset(t_2019_punt_received, !(t_2019_punt_received$nflId%in%t_2019PR$nflId))
+#identifying tacklers for each frame of returners
+#tacklers condition: within one yard of the returner, closer than any teammates
+#the below code is to add returner's x and y coordinates for distance calculations for all players
+t_2019_other_players$returner_x_coord=NA
+t_2019_other_players$returner_y_coord=NA
+playcombination_1=unique(t_2019_punt_received$playcombination)
+playcombination_1=playcombination_1[playcombination_1!='38692019112408']
+playcombination_1=playcombination_1[playcombination_1!='28292019111711']
+for (a in 1:length(playcombination_1)){
+  
+  the_combi=playcombination_1[a]
+  the_play=subset(t_2019_punt_received, t_2019_punt_received$playcombination==playcombination_1[a])
+  the_frame=unique(the_play$frameId)
+  for (b in 1:length(the_frame)){
+    the_frame_new=the_frame[b]
+    the_data=t_2019_punt_received[t_2019_punt_received$playcombination==the_combi & t_2019_punt_received$frameId==the_frame_new, ]
+    the_returner=subset(the_data, the_data$nflId==t_2019PR[t_2019PR$playcombination==the_combi, ]$returner_id[1]) 
+    if(nrow(the_returner)==0){
+      next}
+    else
+    {
+    returner_x_coord_a=the_returner$x
+    returner_y_coord_a=the_returner$y
+    t_2019_other_players[t_2019_other_players$playcombination==the_combi & t_2019_other_players$frameId==the_frame_new, ]$returner_x_coord=returner_x_coord_a
+    t_2019_other_players[t_2019_other_players$playcombination==the_combi & t_2019_other_players$frameId==the_frame_new, ]$returner_y_coord=returner_y_coord_a
+    }
+  }
+}
+```
+
+```{r}
+t_2019_other_players=t_2019_other_players[!is.na(t_2019_other_players$returner_x_coord), ]
+```
+
+Down to one yard
+```{r}
+t_2019_other_players$x_distance=t_2019_other_players$x-t_2019_other_players$returner_x_coord
+t_2019_other_players$y_distance=t_2019_other_players$y-t_2019_other_players$returner_y_coord
+t_2019_other_players$distance=sqrt(t_2019_other_players$x_distance*t_2019_other_players$x_distance+t_2019_other_players$y_distance*t_2019_other_players$y_distance)
+```
+```{r}
+tackle_frame_2019=subset(t_2019_other_players, t_2019_other_players$distance<=1)
+tackle_frame_2019=subset(tackle_frame_2019, tackle_frame_2019$team!='football')
+```
+classify teammates and opponents
+```{r}
+tackle_frame_2019$returner_team=NA
+tackle_frame_2019$returner_teammates=NA
+playcombination_2=unique(tackle_frame_2019$playcombination)
+for (a in 1:length(playcombination_2)){
+  the_combi=playcombination_2[a]
+  the_play=tackle_frame_2019[tackle_frame_2019$playcombination==the_combi, ]
+  the_returner_team=t_2019PR[t_2019PR$playcombination==the_combi, ]$team[1]
+  tackle_frame_2019[tackle_frame_2019$playcombination==the_combi, ]$returner_team=the_returner_team
+}
+```
+```{r}
+tackle_frame_2019$returner_teammates=(tackle_frame_2019$team==tackle_frame_2019$returner_team)
+```
+
+
+create a rectangle with width=tracking player's position at center, length=0.5, 0.25 extended each side of player's orientation(o), length being the distance between the potential tackler and the returner
+
+first add returner's orientation to the frame
+```{r}
+playcombination_3=unique((tackle_frame_2019$playcombination))
+tackle_frame_2019$returner_o=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2019[tackle_frame_2019$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    ro=t_2019PR[t_2019PR$playcombination==the_combi&t_2019PR$frameId==the_frame[b], ]$o
+    tackle_frame_2019[tackle_frame_2019$playcombination==the_combi&tackle_frame_2019$frameId==the_frame[b],  ]$returner_o=ro
+  }
+}
+```
+
+```{r}
+playcombination_3=unique((tackle_frame_2019$playcombination))
+tackle_frame_2019$returner_s=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2019[tackle_frame_2019$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    rs=t_2019PR[t_2019PR$playcombination==the_combi&t_2019PR$frameId==the_frame[b], ]$s
+    tackle_frame_2019[tackle_frame_2019$playcombination==the_combi&tackle_frame_2019$frameId==the_frame[b],  ]$returner_s=rs
+  }
+}
+```
+create the coordination of the rectangle
+```{r}
+half_length=0.25
+tackle_frame_2019$x1=NA
+tackle_frame_2019$y1=NA
+tackle_frame_2019$x2=NA
+tackle_frame_2019$y2=NA
+tackle_frame_2019$x3=NA
+tackle_frame_2019$y3=NA
+tackle_frame_2019$x4=NA
+tackle_frame_2019$y4=NA
+for (a in 1:nrow(tackle_frame_2019)){
+  tackle_frame_2019[a, ]$x1=tackle_frame_2019[a, ]$x+0.25*sin(tackle_frame_2019[a, ]$o*pi/180)
+  tackle_frame_2019[a, ]$y1=tackle_frame_2019[a, ]$y+0.25*cos(tackle_frame_2019[a, ]$o*pi/180)
+  tackle_frame_2019[a, ]$x2=tackle_frame_2019[a, ]$x-0.25*sin(tackle_frame_2019[a, ]$o*pi/180)
+  tackle_frame_2019[a, ]$y2=tackle_frame_2019[a, ]$y-0.25*cos(tackle_frame_2019[a, ]$o*pi/180)
+  tackle_frame_2019[a, ]$x3=tackle_frame_2019[a, ]$returner_x_coord+0.25*sin(tackle_frame_2019[a, ]$returner_o*pi/180)
+  tackle_frame_2019[a, ]$y3=tackle_frame_2019[a, ]$returner_y_coord+0.25*cos(tackle_frame_2019[a, ]$returner_o*pi/180)
+  tackle_frame_2019[a, ]$x4=tackle_frame_2019[a, ]$returner_x_coord-0.25*sin(tackle_frame_2019[a, ]$returner_o*pi/180)
+  tackle_frame_2019[a, ]$y4=tackle_frame_2019[a, ]$returner_y_coord-0.25*cos(tackle_frame_2019[a, ]$returner_o*pi/180)
+}
+```
+determine if points are inside of the quadrilateral
+```{r}
+the_potential_tackler=tackle_frame_2019[tackle_frame_2019$team!=tackle_frame_2019$returner_team, ]
+the_potential_blocker=tackle_frame_2019[tackle_frame_2019$team==tackle_frame_2019$returner_team, ]
+```
+
+```{r}
+library(ptinpoly)
+the_potential_tackler$is_tackler=NA
+the_potential_blocker$in_the_area=NA
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  if(dim(the_blocker)[1]==0){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+  else{
+    for(b in 1:nrow(the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ])){
+      x_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$x
+      y_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$y
+      #determine if(x,y) is in the quadrilateral
+      quad=rbind(
+        c(the_potential_tackler[a, ]$x1, the_potential_tackler[a, ]$y1),
+        c(the_potential_tackler[a, ]$x2, the_potential_tackler[a, ]$y2),
+        c(the_potential_tackler[a, ]$x3, the_potential_tackler[a, ]$y3),
+        c(the_potential_tackler[a, ]$x4, the_potential_tackler[a, ]$y4)
+      )
+      point=rbind(c(x_blocker, y_blocker))
+      result=pip2d(quad, point)
+      if(result==1){
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=1
+      }
+      else{
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=0
+      }
+    }
+  }
+}
+
+for(a in 1:nrow(the_potential_blocker)){
+  if(is.na(the_potential_blocker[a, ]$in_the_area)){
+    the_potential_blocker[a, ]$in_the_area=0
+  }
+}
+
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  g=dim(the_blocker)[1]
+  if(g>0){
+    check=any(the_blocker$in_the_area==1)
+    }
+  
+  if(check==TRUE){
+    the_potential_tackler[a, ]$is_tackler=0
+  }
+  if(check==FALSE){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+}
+```
+
+```{r}
+the_potential_tackler_2019=the_potential_tackler[the_potential_tackler$is_tackler==1, ]
+t_2019PR$has_tackler=0
+t_2019PR$frameplaycombi=paste(t_2019PR$frameId, t_2019PR$playcombination, sep='')
+the_potential_tackler_2019$frameplaycombi=paste(the_potential_tackler_2019$frameId, the_potential_tackler_2019$playcombination, sep='')
+for(a in 1:nrow(t_2019PR)){
+  if(t_2019PR[a, ]$frameplaycombi%in%the_potential_tackler_2019$frameplaycombi){
+    t_2019PR[a, ]$has_tackler=1
+  }
+}
+```
+```{r}
+t_2019PR=t_2019PR[t_2019PR$has_tackler==1, ]
+```
+```{r}
+write.csv(the_potential_tackler_2019, file='tacklers_2019.csv')
+write.csv(t_2019PR, file='returner_2019.csv')
+```
+
+
+
+2020
+
+
+
+
+```{r}
+PFF_2020=read.csv('PFFScoutingData.csv')
+t_2020=read.csv('tracking2020.csv')
+games_2020=read.csv('games.csv')
+```
+selecting punt plays only and give each play an unique id "playcombination"
+```{r}
+plays_punt_2020=subset(plays_punt, floor(plays_punt$gameId/1000000)==2020)
+plays_punt_2020$playcombination=paste(plays_punt_2020$playId, plays_punt_2020$gameId, sep='')
+t_2020$playcombination=paste(t_2020$playId, t_2020$gameId, sep='')
+t_2020_punt=subset(t_2020, t_2020$playcombination%in%plays_punt_2020$playcombination)
+```
+
+only cares about punt plays after received
+```{r}
+plays_punt_returned_2020=plays_punt_2020[plays_punt_2020$specialTeamsResult=="Return", ]
+t_2020_punt=subset(t_2020_punt, t_2020_punt$playcombination%in%plays_punt_returned_2020$playcombination)
+t_2020_punt$row_number=c(1:nrow(t_2020_punt))
+```
+
+
+```{r}
+t_2020_punt$received_label=0
+received_punt=subset(t_2020_punt, t_2020_punt$event=='punt_received' |t_2020_punt$frameId==1)
+list_interval=list()
+for (a in (1:(nrow(received_punt)-1))){
+  beginning=received_punt[a, ]$row_number
+  end=received_punt[a+1, ]$row_number-1
+  interval=c(beginning:end)
+  if(a==1){
+    list_interval[[a]]=interval
+  }
+  else{
+    list_interval[[length(list_interval)+1]]=interval
+  }
+  }
+```
+
+```{r}
+a=seq(1,52117,2)
+b=seq(2,52117,2)
+t_2020_punt$received_label=0
+```
+```{r}
+list_interval_1=list_interval[c(FALSE, TRUE)]
+for (a in 8074:length(list_interval_1)){
+    t_2020_punt[list_interval_1[[a]], ]$received_label=1
+}
+```
+for (a in 8078:length(list_interval)){
+  if (a%%2==1){
+    t_2020_punt[list_interval[[a]], ]$received_label=0
+  }
+  else{
+    t_2020_punt[list_interval[[a]], ]$received_label=1
+  }
+}
+```
+```{r}
+t_2020_punt_received=t_2020_punt[t_2020_punt$received_label==1, ]
+```
+
+identifying tacklers
+要素：与returner之间没有其他队员阻挡
+且离returner距离不超过1码
+```{r}
+#subsetting retuners
+t_2020returners=plays_punt_2020[!is.na(plays_punt_2020$returnerId), ]
+t_2020returned=t_2020returners[t_2020returners$specialTeamsResult=='Return', ]
+t_2020returnersid=unique(t_2020returned$returnerId)
+t_2020returnersid=gsub(";.*$","",t_2020returnersid) #Only select punt plays that are returned"
+players_2020returners=subset(players, players$nflId%in%t_2020returnersid, )
+```
+```{r}
+#returners label
+plays_punt_returned_2020=plays_punt_2020[plays_punt_2020$specialTeamsResult=='Return', ]
+t_2020_punt_received$returner_id=0
+playcombination_1=unique(t_2020_punt_received$playcombination)
+for(a in 1:length(playcombination_1)){
+  returner_id_1=plays_punt_returned_2020[plays_punt_returned_2020$playcombination==playcombination_1[a], ]$returnerId
+  t_2020_punt_received[t_2020_punt_received$playcombination==playcombination_1[a], ]$returner_id=returner_id_1
+} 
+```
+
+```{r}
+t_2020PR=subset(t_2020_punt_received, t_2020_punt_received$nflId==t_2020_punt_received$returner_id)
+t_2020PR$returner_id=gsub(";.*$","",t_2020PR$returner_id)
+t_2020_punt_received$returner_id=gsub(";.*$","",t_2020_punt_received$returner_id)
+```
+```{r}
+f=rep(0, length(unique(t_2020_punt_received$playcombination)))
+for(a in 1:length(f)){
+  if(playcombination_1[a]%in%t_2020PR$playcombination){
+    f[a]=1
+  }
+}
+
+```
+
+```{r}
+#selecting other players
+t_2020_other_players=subset(t_2020_punt_received, !(t_2020_punt_received$nflId%in%t_2020PR$nflId))
+#identifying tacklers for each frame of returners
+#tacklers condition: within one yard of the returner, closer than any teammates
+#the below code is to add returner's x and y coordinates for distance calculations for all players
+t_2020_other_players$returner_x_coord=NA
+t_2020_other_players$returner_y_coord=NA
+playcombination_1=unique(t_2020_punt_received$playcombination)
+playcombination_1=playcombination_1[playcombination_1!='1452020112905']
+playcombination_1=playcombination_1[playcombination_1!='15722020110200']
+playcombination_1=playcombination_1[playcombination_1!='12702020110810']
+playcombination_1=playcombination_1[playcombination_1!='26832020092002']
+for (a in 1:length(playcombination_1)){
+  
+  the_combi=playcombination_1[a]
+  the_play=subset(t_2020_punt_received, t_2020_punt_received$playcombination==playcombination_1[a])
+  the_frame=unique(the_play$frameId)
+  for (b in 1:length(the_frame)){
+    the_frame_new=the_frame[b]
+    the_data=t_2020_punt_received[t_2020_punt_received$playcombination==the_combi & t_2020_punt_received$frameId==the_frame_new, ]
+    the_returner=subset(the_data, the_data$nflId==t_2020PR[t_2020PR$playcombination==the_combi, ]$returner_id[1]) 
+    if(nrow(the_returner)==0){
+      next
+    }
+    else
+    {
+    returner_x_coord_a=the_returner$x
+    returner_y_coord_a=the_returner$y
+    t_2020_other_players[t_2020_other_players$playcombination==the_combi & t_2020_other_players$frameId==the_frame_new, ]$returner_x_coord=returner_x_coord_a
+    t_2020_other_players[t_2020_other_players$playcombination==the_combi & t_2020_other_players$frameId==the_frame_new, ]$returner_y_coord=returner_y_coord_a
+    }
+  }
+}
+```
+```{r}
+t_2020_other_players=t_2020_other_players[!is.na(t_2020_other_players$returner_x_coord), ]
+```
+Down to one yard
+```{r}
+t_2020_other_players$x_distance=t_2020_other_players$x-t_2020_other_players$returner_x_coord
+t_2020_other_players$y_distance=t_2020_other_players$y-t_2020_other_players$returner_y_coord
+t_2020_other_players$distance=sqrt(t_2020_other_players$x_distance*t_2020_other_players$x_distance+t_2020_other_players$y_distance*t_2020_other_players$y_distance)
+```
+```{r}
+tackle_frame_2020=subset(t_2020_other_players, t_2020_other_players$distance<=1)
+tackle_frame_2020=subset(tackle_frame_2020, tackle_frame_2020$team!='football')
+```
+classify teammates and opponents
+```{r}
+tackle_frame_2020$returner_team=NA
+tackle_frame_2020$returner_teammates=NA
+playcombination_2=unique(tackle_frame_2020$playcombination)
+for (a in 1:length(playcombination_2)){
+  the_combi=playcombination_2[a]
+  the_play=tackle_frame_2020[tackle_frame_2020$playcombination==the_combi, ]
+  the_returner_team=t_2020PR[t_2020PR$playcombination==the_combi, ]$team[1]
+  tackle_frame_2020[tackle_frame_2020$playcombination==the_combi, ]$returner_team=the_returner_team
+}
+```
+```{r}
+tackle_frame_2020$returner_teammates=(tackle_frame_2020$team==tackle_frame_2020$returner_team)
+```
+
+
+create a rectangle with width=tracking player's position at center, length=0.5, 0.25 extended each side of player's orientation(o), length being the distance between the potential tackler and the returner
+
+first add returner's orientation to the frame
+```{r}
+playcombination_3=unique((tackle_frame_2020$playcombination))
+tackle_frame_2020$returner_o=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2020[tackle_frame_2020$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    ro=t_2020PR[t_2020PR$playcombination==the_combi&t_2020PR$frameId==the_frame[b], ]$o
+    tackle_frame_2020[tackle_frame_2020$playcombination==the_combi&tackle_frame_2020$frameId==the_frame[b],  ]$returner_o=ro
+  }
+}
+```
+
+```{r}
+playcombination_3=unique((tackle_frame_2020$playcombination))
+tackle_frame_2020$returner_s=NA
+for (a in 1:length(playcombination_3)){
+  the_combi=playcombination_3[a]
+  the_play=tackle_frame_2020[tackle_frame_2020$playcombination==the_combi, ]
+  the_frame=unique(the_play$frameId)
+  for(b in 1:length(the_frame)){
+    rs=t_2020PR[t_2020PR$playcombination==the_combi&t_2020PR$frameId==the_frame[b], ]$s
+    tackle_frame_2020[tackle_frame_2020$playcombination==the_combi&tackle_frame_2020$frameId==the_frame[b],  ]$returner_s=rs
+  }
+}
+```
+create the coordination of the rectangle
+```{r}
+half_length=0.25
+tackle_frame_2020$x1=NA
+tackle_frame_2020$y1=NA
+tackle_frame_2020$x2=NA
+tackle_frame_2020$y2=NA
+tackle_frame_2020$x3=NA
+tackle_frame_2020$y3=NA
+tackle_frame_2020$x4=NA
+tackle_frame_2020$y4=NA
+for (a in 1:nrow(tackle_frame_2020)){
+  tackle_frame_2020[a, ]$x1=tackle_frame_2020[a, ]$x+0.25*sin(tackle_frame_2020[a, ]$o*pi/180)
+  tackle_frame_2020[a, ]$y1=tackle_frame_2020[a, ]$y+0.25*cos(tackle_frame_2020[a, ]$o*pi/180)
+  tackle_frame_2020[a, ]$x2=tackle_frame_2020[a, ]$x-0.25*sin(tackle_frame_2020[a, ]$o*pi/180)
+  tackle_frame_2020[a, ]$y2=tackle_frame_2020[a, ]$y-0.25*cos(tackle_frame_2020[a, ]$o*pi/180)
+  tackle_frame_2020[a, ]$x3=tackle_frame_2020[a, ]$returner_x_coord+0.25*sin(tackle_frame_2020[a, ]$returner_o*pi/180)
+  tackle_frame_2020[a, ]$y3=tackle_frame_2020[a, ]$returner_y_coord+0.25*cos(tackle_frame_2020[a, ]$returner_o*pi/180)
+  tackle_frame_2020[a, ]$x4=tackle_frame_2020[a, ]$returner_x_coord-0.25*sin(tackle_frame_2020[a, ]$returner_o*pi/180)
+  tackle_frame_2020[a, ]$y4=tackle_frame_2020[a, ]$returner_y_coord-0.25*cos(tackle_frame_2020[a, ]$returner_o*pi/180)
+}
+```
+determine if points are inside of the quadrilateral
+```{r}
+the_potential_tackler=tackle_frame_2020[tackle_frame_2020$team!=tackle_frame_2020$returner_team, ]
+the_potential_blocker=tackle_frame_2020[tackle_frame_2020$team==tackle_frame_2020$returner_team, ]
+```
+
+```{r}
+library(ptinpoly)
+the_potential_tackler$is_tackler=NA
+the_potential_blocker$in_the_area=NA
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  if(dim(the_blocker)[1]==0){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+  else{
+    for(b in 1:nrow(the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ])){
+      x_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$x
+      y_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$y
+      #determine if(x,y) is in the quadrilateral
+      quad=rbind(
+        c(the_potential_tackler[a, ]$x1, the_potential_tackler[a, ]$y1),
+        c(the_potential_tackler[a, ]$x2, the_potential_tackler[a, ]$y2),
+        c(the_potential_tackler[a, ]$x3, the_potential_tackler[a, ]$y3),
+        c(the_potential_tackler[a, ]$x4, the_potential_tackler[a, ]$y4)
+      )
+      point=rbind(c(x_blocker, y_blocker))
+      result=pip2d(quad, point)
+      if(result==1){
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=1
+      }
+      else{
+        the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ][b, ]$in_the_area=0
+      }
+    }
+  }
+}
+
+for(a in 1:nrow(the_potential_blocker)){
+  if(is.na(the_potential_blocker[a, ]$in_the_area)){
+    the_potential_blocker[a, ]$in_the_area=0
+  }
+}
+
+for(a in 1:nrow(the_potential_tackler)){
+  play_combi=the_potential_tackler[a, ]$playcombination
+  the_frame=the_potential_tackler[a, ]$frameId
+  the_blocker=the_potential_blocker[the_potential_blocker$playcombination==play_combi&the_potential_blocker$frameId==the_frame, ]
+  g=dim(the_blocker)[1]
+  if(g>0){
+    check=any(the_blocker$in_the_area==1)
+    }
+  
+  if(check==TRUE){
+    the_potential_tackler[a, ]$is_tackler=0
+  }
+  if(check==FALSE){
+    the_potential_tackler[a, ]$is_tackler=1
+  }
+}
+```
+
+```{r}
+the_potential_tackler_2020=the_potential_tackler[the_potential_tackler$is_tackler==1, ]
+t_2020PR$has_tackler=0
+t_2020PR$frameplaycombi=paste(t_2020PR$frameId, t_2020PR$playcombination, sep='')
+the_potential_tackler_2020$frameplaycombi=paste(the_potential_tackler_2020$frameId, the_potential_tackler_2020$playcombination, sep='')
+for(a in 1:nrow(t_2020PR)){
+  if(t_2020PR[a, ]$frameplaycombi%in%the_potential_tackler_2020$frameplaycombi){
+    t_2020PR[a, ]$has_tackler=1
+  }
+}
+```
+```{r}
+t_2020PR=t_2020PR[t_2020PR$has_tackler==1, ]
+```
+```{r}
+write.csv(the_potential_tackler_2020, file='tacklers_2020.csv')
+write.csv(t_2020PR, file='returner_2020.csv')
 ```
