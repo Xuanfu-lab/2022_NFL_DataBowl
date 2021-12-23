@@ -19,6 +19,7 @@ def initialize():
 
 
 if __name__ == '__main__':
+    # run initialize() when it's brand new
     # initialize()
     DataForNN.prepareData()
 
