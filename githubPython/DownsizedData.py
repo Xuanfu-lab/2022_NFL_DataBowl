@@ -5,6 +5,7 @@ import json
 from threading import Thread
 
 from PlaysAnalysis import PlaysAnalysis, uniquePlayID
+from TacklePlayInfo import TacklePlayInfo
 
 uniquePlayFileName = 'DownsizedData/uniquePlays.json'
 nan = float('nan')
@@ -18,11 +19,8 @@ def loadData(rawFilename: str, nrows: int = None) -> pd.DataFrame:
         return pd.read_csv(filename, nrows=nrows)
 
 
-
-
-
 def getPlayerInfo(row):
-    return (int(row[10]), row[14] == 'home', int(row[12]))
+    return (int(row[10]), row[14] == 'home')
 
 
 def getPlayerData(row):
@@ -68,9 +66,10 @@ class DownsizedData:
     def __init__(self, year: int = None, data=None, csvData=None):
 
         self.year = year
-        self.playInfo = data
+        self.playInfos = data
         self.playData = csvData
         self.plays = PlaysAnalysis().getUniquePlay()
+        TacklePlayInfo.getPlays(self.plays)
 
     def dataDownsizing(self) -> []:
 
@@ -80,7 +79,7 @@ class DownsizedData:
         print('finished loading tracking csv file')
 
         t0 = time()
-        # data = [[[gamePlayID, returnerIndex, type, playerlist, dataIndex], playData]]
+        # data = [[playInfoObj, playData]]
         # numpyData = [gameDataAtEachTimeFrame]
         # gameDataAtEachTimeFrame = [timeFromStart, *ballData, *homeRunPlayerData, *awayPlayerData]
         # homeRunPlayerData = [*playerData]  # awayPlayerData is similar
@@ -95,9 +94,6 @@ class DownsizedData:
                 newRow = next(rowIter)
             except StopIteration:
                 break
-            playDataFull = None
-            playerList = None
-            playData = None
             playID = uniquePlayID(newRow[16], newRow[17])
             process = playID in self.plays
             n = None
@@ -106,18 +102,24 @@ class DownsizedData:
                 # players not in correct order,
                 # playerList currently holds data = [(playerID, team, jerseyNum)]
 
-                playDataFull = [[playID, *self.plays[playID], []], []]
-                playType = playDataFull[0][2]
-                playerList = playDataFull[0][3]
-                playerList.append(getPlayerInfo(newRow))
-                playData = playDataFull[1]
+                playData = []
+                playerList = [getPlayerInfo(newRow)]
+                playInfo = TacklePlayInfo(playID, playerList=playerList)
+                playInfo.getInfoFromPlays()
+                # playDataFull = [playInfo, playData]
+
+                # playDataFull = [[playID, *self.plays[playID], []], []]
+                # playType = playDataFull[0][2]
+                # playerList = playDataFull[0][3]
+                # playerList.append(getPlayerInfo(newRow))
+                # playData = playDataFull[1]
                 playerData = []
                 headerData = []
                 event = 0
 
                 while True:
                     eventStr = newRow[9]
-                    eventNum = puntEvent(eventStr) if playType == 0 else kickoffEvent(eventStr)
+                    eventNum = puntEvent(eventStr) if playInfo.playType == 0 else kickoffEvent(eventStr)
                     if eventNum != 0:
                         event = eventNum
                     headerData.append(event)
@@ -156,19 +158,18 @@ class DownsizedData:
                 for i in range(22):
                     player = playerList[i]
                     if player[1] == 1:
-                        homeTeamPlayer.append((player[0], player[2]))
+                        homeTeamPlayer.append(player[0])
                         homeTeam += transpose(playData[i])
                     else:
-                        awayTeamPlayer.append((player[0], player[2]))
+                        awayTeamPlayer.append(player[0])
                         awayTeam += transpose(playData[i])
                 playerList = homeTeamPlayer + awayTeamPlayer
                 for i in range(22):
-                    if playDataFull[0][1] == playerList[i][0]:
-                        playDataFull[0][1] = i
+                    if playInfo.returnerID == playerList[i]:
+                        playInfo.returnerIdx = i
                 newPlayData = [headerData, *transpose(playData[22]), *homeTeam, *awayTeam]
-                playDataFull[0][3] = playerList
-                playDataFull[1] = newPlayData
-                data.append(playDataFull)
+                playInfo.playerList = playerList
+                data.append([playInfo, newPlayData])
             else:
                 while True:
                     del (lastRow)
@@ -187,16 +188,15 @@ class DownsizedData:
     def restructure(self, data, transposeCSV=False):
         # csv = [[header * 1, ball * 5, home * 11 * 7, away * 11 * 7]]
         print('restructuring downsized data...')
-        self.playInfo = []
+        self.playInfos = []
         self.playData = []
         rowPos = 0
         for playInfo, playData in data:
-            playInfo = list(playInfo)
             if transposeCSV:
                 playData = transpose(playData)
             nrows = len(playData)
-            playInfo.append((rowPos, rowPos + nrows))
-            self.playInfo.append(playInfo)
+            playInfo.dataIndexes = (rowPos, rowPos + nrows)
+            self.playInfos.append(playInfo)
             self.playData += playData
             rowPos += nrows
 
@@ -204,9 +204,9 @@ class DownsizedData:
 
     def save(self, playInfoFileName: str, playDataFileName: str):
         print('saving data to files...')
-        if self.playInfo is None:
+        if self.playInfos is None:
             raise ValueError("data is empty")
-        json.dump(self.playInfo, open(playInfoFileName, 'w'))
+        json.dump([playInfo.toJSON() for playInfo in self.playInfos], open(playInfoFileName, 'w'))
         if self.playData is None:
             raise ValueError(f"csvData is empty")
         pd.DataFrame(self.playData).to_csv(playDataFileName, mode='w', index=False, header=False)
@@ -214,38 +214,39 @@ class DownsizedData:
 
     def load(self, playInfoFileName: str, playDataFileName: str, dataFrame=False):
         print('loading data from files...')
-        self.playInfo = json.load(open(playInfoFileName, 'r'))
+        self.playInfos = [TacklePlayInfo.fromJSON(playInfo) for playInfo in json.load(open(playInfoFileName, 'r'))]
         csvData = pd.read_csv(playDataFileName, header=None)
         if dataFrame:
             print('finished loading data')
             self.playData = csvData
-            return self.playInfo, csvData
+            return self.playInfos, csvData
         else:
             self.playData = csvData.values.tolist()
             print('finished loading data')
-            return self.playInfo, self.playData
+            return self.playInfos, self.playData
+
     @classmethod
     def fromSave(cls, playInfoFileName: str, playDataFileName: str, dataFrame=False):
-        data = DownsizedData()
+        data = cls()
         data.load(playInfoFileName, playDataFileName, dataFrame)
         return data
 
     @classmethod
     def combine(cls, objs):
         print('start combining...')
-        playInfoList = objs[0].playInfo
+        playInfoList = objs[0].playInfos
         playData = objs[0].playData
         n = 0
         for i in range(len(objs) - 1):
             n += len(objs[i].playData)
-            playInfoListTemp = objs[i + 1].playInfo
+            playInfoListTemp = objs[i + 1].playInfos
             for playInfo in playInfoListTemp:
-                oldIndexs = playInfo[4]
-                playInfo[4] = (oldIndexs[0] + n, oldIndexs[1] + n)
+                oldIndexes = playInfo.dataIndexes
+                playInfo.dataIndexes = (oldIndexes[0] + n, oldIndexes[1] + n)
             playInfoList += playInfoListTemp
             playData += objs[i + 1].playData
         print('finished combining')
-        return DownsizedData(data=playInfoList, csvData=playData)
+        return cls(data=playInfoList, csvData=playData)
 
     # seperate punt and kickoff, and their events, probably only for testing
     def seperate0(self, save=False, year=''):
@@ -257,8 +258,8 @@ class DownsizedData:
         # [eventType: [play: [playInfo, playData]]]
         dataList = [[] for _ in range(nObjs)]
         eventDataLocal = None
-        for play in self.playInfo:
-            index = play[4]
+        for playInfo in self.playInfos:
+            index = playInfo.dataIndexes
             event = 0
             try:
                 for i in range(*index):
@@ -270,10 +271,10 @@ class DownsizedData:
                     if newEvent != event:
                         event = newEvent
                         eventDataLocal = []
-                        eventType.append([play[:4], eventDataLocal])
+                        eventType.append([playInfo, eventDataLocal])
                     eventDataLocal.append(frame)
             except IndexError:
-                print(len(self.playData), self.playInfo[-1][4])
+                print(len(self.playData), self.playInfos[-1][4])
                 raise
         print('saving files...')
         objList = []
@@ -291,7 +292,7 @@ class DownsizedData:
         playCols = ['gamePlayID', 'returnerIndex', 'type', 'event']
         dataCols = ['x', 'y', 'v', 'a', 'distance', 'orientation', 'direction']
         ballCols = ['ball ' + i for i in dataCols[:5]]
-        playerCols = ['playerID', 'jerseyNum'] + dataCols
+        playerCols = ['playerID'] + dataCols
         playerCols = [[f'#{i} ' + j for j in playerCols] for i in range(22)]
         cols = playCols + ballCols + [j for i in playerCols for j in i]
         pd.DataFrame(columns=cols).to_csv(filename, mode='w', index=False)
@@ -299,9 +300,9 @@ class DownsizedData:
             n = len(playData[0])
             base = pd.DataFrame(index=range(n))
             # other data
-            base[playCols[0]] = playInfo[0]
-            base[playCols[1]] = playInfo[1]
-            base[playCols[2]] = 'Kickoff' if playInfo[2] else 'Punt'
+            base[playCols[0]] = playInfo.playID
+            base[playCols[1]] = playInfo.returnerIdx
+            base[playCols[2]] = 'Kickoff' if playInfo.playType else 'Punt'
             # event
             base[playCols[3]] = playData[0]
             # ball
@@ -309,10 +310,9 @@ class DownsizedData:
                 base[ballCols[i]] = playData[i + 1]
             # players
             for i in range(22):
-                base[cols[9 + i * 9]] = playInfo[3][i][0]
-                base[cols[10 + i * 9]] = playInfo[3][i][1]
+                base[cols[9 + i * 8]] = playInfo.playerList[i]
                 for j in range(len(dataCols)):
-                    base[cols[11 + j + i * 9]] = playData[6 + j + i * 7]
+                    base[cols[10 + j + i * 8]] = playData[6 + j + i * 7]
             base.to_csv(filename, mode='a', header=False, index=False)
         print('finished')
 
@@ -329,12 +329,12 @@ if __name__ == '__main__':
         playInfoData = data.dataDownsizing()
         data.restructure(playInfoData, transposeCSV=True)
         data.save(playInfoFileName, playDataFileName)
-        data.saveToCSV(csvFileName, playInfoData)
 
         # data.load(playInfoFileName, playDataFileName)
         dataList.append(data)
     data = DownsizedData.combine(dataList)
     data.save('DownsizedData/playInfo.json', 'DownsizedData/playData.csv')
+    data.saveToCSV(csvFileName, playInfoData)
     data.seperate0(save=True)
 
     # data.getUniquePlay(new=True)
