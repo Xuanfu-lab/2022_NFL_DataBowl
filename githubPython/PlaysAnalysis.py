@@ -42,7 +42,9 @@ class PlaysAnalysis:
             self.plays[int(uid)] = play
         return self.plays
 
-
+    @staticmethod
+    def initialize():
+        PlaysAnalysis().getUniquePlay(new=True)
 
 if __name__ == '__main__':
     plays = PlaysAnalysis()

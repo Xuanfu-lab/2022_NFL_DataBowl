@@ -81,6 +81,10 @@ class PlayerAnalysis:
             self.playerDict = playerDict
         return self.playerDict
 
+    @staticmethod
+    def initialize():
+        PlayerAnalysis().getPlayerAbbr(new=True)
+
 
 
 if __name__ == "__main__":

@@ -130,18 +130,16 @@ class DataForNN:
             pd.DataFrame(frameList).to_csv(saveFileName)
         return frameList
 
-    def finalProcess0(self):
-        # for space score calculation
-        # -- includes only one frame for each tackler for each play
-        # -- all frames needs data for each player
-
-        pass
-
-    def finalProcess1(self):
-        # for nn version 1
-        # data = [[returner x, y, ..., tackler x, y, ..., space, success]]
-
-        pass
+    @staticmethod
+    def prepareData():
+        processor = DataForNN()
+        data = processor.getData([3, 5])
+        data = processor.addTackler(data)
+        data = processor.addDistanceData(data)
+        spaceValueFileName = 'AnalyzedData/spaceValueSource.csv'
+        nnDataFileName = 'AnalyzedData/nnDataSource.csv'
+        processor.getKeyFrames(data, forSpaceValue=True, saveFileName=spaceValueFileName)
+        processor.getKeyFrames(data, saveFileName=nnDataFileName)
 
 
 if __name__ == '__main__':

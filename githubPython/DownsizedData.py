@@ -316,6 +316,26 @@ class DownsizedData:
             base.to_csv(filename, mode='a', header=False, index=False)
         print('finished')
 
+    @staticmethod
+    def initialize(fromRawData=True):
+        data = None
+        if fromRawData:
+            years = [2018, 2019, 2020]
+            dataList = []
+            for year in years:
+                playInfoFileName = f'DownsizedData/playInfo{year}.json'
+                playDataFileName = f'DownsizedData/playData{year}.csv'
+                data = DownsizedData(year)
+                playInfoData = data.dataDownsizing()
+                data.restructure(playInfoData, transposeCSV=True)
+                dataList.append(data)
+            data = DownsizedData.combine(dataList)
+            data.save('DownsizedData/playInfo.json', 'DownsizedData/playData.csv')
+        else:
+            data = DownsizedData()
+            data.load('DownsizedData/playInfo.json', 'DownsizedData/playData.csv')
+        data.seperate0(save=True)
+
 
 if __name__ == '__main__':
     years = [2018, 2019, 2020]

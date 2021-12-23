@@ -27,7 +27,7 @@ class TacklePlayInfo(PlayInfo):
         return self.playerList[self.tacklerIdx[0]]
 
     def getSuccess(self):
-        return self.playerList[self.tacklerIdx[1]]
+        return self.tacklerIdx[1]
 
     def toJSON(self):
         return super().toJSON() + [self.returnerIdx, self.tacklerIdx]
