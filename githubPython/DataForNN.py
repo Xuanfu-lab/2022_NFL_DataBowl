@@ -2,7 +2,6 @@ from copy import copy
 
 import numpy as np
 import pandas as pd
-from numba import jit
 from time import time
 
 from DownsizedData import DownsizedData
@@ -14,7 +13,6 @@ distanceStartIdx = 160
 tackleAttemptDistance = 1.5
 
 
-# @jit(parallel=True)
 def distanceJIT(data, returnerPos):
     n = data.shape[0]
     result = np.empty((n, 22))
@@ -125,7 +123,7 @@ class DataForNN:
                 d = data.playData
                 frameData = [d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
                 frameData = np.concatenate(frameData).tolist()
-                frameCSV = [playID, playType, returnerID, tacklerID, *frameData]
+                frameCSV = [playID, playType, returnerID, tacklerID, *frameData, success]
                 frameList.append(frameCSV)
 
         if saveFileName is not None:

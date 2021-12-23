@@ -87,4 +87,4 @@ if __name__ == "__main__":
     playerInfo = PlayerAnalysis()
     playerInfo.getPlayerAbbr()
     print(len(playerInfo.playerDict))
-    print(playerInfo.getPlayerID(2018123000, 'BAL 26'))
+    print(playerInfo.getPlayerIDFromAbbr(2018123000, 'BAL 26'))
