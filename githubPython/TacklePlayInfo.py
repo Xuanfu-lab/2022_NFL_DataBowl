@@ -42,9 +42,8 @@ class TacklePlayInfo(PlayInfo):
                    tacklerIdx=tacklerIdx,
                    playerList=playerList)
 
-    @classmethod
-    def __copy__(self, playInfo):
-        return TacklePlayInfo.fromJSON(playInfo.toJSON())
+    def __copy__(self):
+        return TacklePlayInfo.fromJSON(self.toJSON())
 
 
 if __name__ == '__main__':

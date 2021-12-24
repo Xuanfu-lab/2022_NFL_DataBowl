@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from time import time
 
+
 from DownsizedData import DownsizedData
 from PlaysAnalysis import uniquePlayID
 from TacklePlayInfo import TacklePlayInfo
@@ -22,9 +23,11 @@ def distanceJIT(data, returnerPos):
     return result
 
 
+
 class DataForNN:
     def __init__(self):
-        pass
+        self.frameInfos = None
+        self.csvData = None
 
     def getData(self, events: [int]):
         dataList = []
@@ -66,7 +69,55 @@ class DataForNN:
         data.playData = npData
         return data
 
-    def getKeyFrames(self, data: DownsizedData, forSpaceValue=False, saveFileName: str = None):
+    def framesToCSVForSpace(self, saveFileName=None):
+        data = self.csvData
+        frameList = []
+        for playInfo in self.frameInfos:
+            # player list reorder
+            returnerIdx = playInfo.returnerIdx
+            ri = (0, returnerIdx, 11) if returnerIdx < 11 else (11, returnerIdx, 22)
+            ti = (0, 11) if returnerIdx < 11 else (11, 22)
+            pl = playInfo.playerList
+            newPlayerList = [*pl[ri[1]:ri[2]], *pl[ri[0]:ri[1]], *pl[ti[0]:ti[1]]]
+
+            # frame data reorder
+            fi = playInfo.dataIndexes
+            returnerDataIdx = 6 + 7 * returnerIdx
+            returnerTeamIdx = 6 if returnerIdx < 11 else 83
+            ri = (returnerTeamIdx, returnerDataIdx, returnerTeamIdx + 77)
+            ti = (6, 83) if returnerIdx >= 11 else (83, 160)
+            d = data.playData
+            frameData = [d[fi, ri[1]:ri[2]], d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
+            frameData = np.concatenate(frameData)
+            frameData = frameData.tolist()
+            frameCSV = [playInfo.playID, playInfo.playType, *newPlayerList, *frameData]
+            frameList.append(frameCSV)
+        if saveFileName is not None:
+            pd.DataFrame(frameList).to_csv(saveFileName)
+        return frameList
+
+    def framesToCSVForNN(self, saveFileName=None):
+        data = self.csvData
+        frameList = []
+        for playInfo in self.frameInfos:
+            playID = playInfo.playID
+            playType = playInfo.playType
+            returnerID = playInfo.getReturnerID()
+            tacklerID = playInfo.getTacklerID()
+            success = playInfo.getSuccess()
+            ri = (6 + 7 * playInfo.returnerIdx, 13 + 7 * playInfo.returnerIdx)
+            ti = (6 + 7 * playInfo.tacklerIdx[0], 13 + 7 * playInfo.tacklerIdx[0])
+            fi = playInfo.dataIndexes
+            d = data.playData
+            frameData = [d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
+            frameData = np.concatenate(frameData).tolist()
+            frameCSV = [playID, playType, returnerID, tacklerID, *frameData, success]
+            frameList.append(frameCSV)
+        if saveFileName is not None:
+            pd.DataFrame(frameList).to_csv(saveFileName)
+        return frameList
+
+    def getKeyFrames(self, data: DownsizedData):
         # get the first frame when the trackler get within 1.5 yard radius of the returner
 
         #
@@ -87,48 +138,43 @@ class DataForNN:
                         newPlayInfo.dataIndexes = frameIdx
                         frames.append(newPlayInfo)
                         break
+        self.frameInfos = frames
+        self.csvData = data.playData
+        return [frames, data.playData]
 
-        frameList = []
-        if forSpaceValue:
-            for playInfo in frames:
-                # player list reorder
-                returnerIdx = playInfo.returnerIdx
-                ri = (0, returnerIdx, 11) if returnerIdx < 11 else (11, returnerIdx, 22)
-                ti = (0, 11) if returnerIdx < 11 else (11, 22)
-                pl = playInfo.playerList
-                newPlayerList = [*pl[ri[1]:ri[2]], *pl[ri[0]:ri[1]], *pl[ti[0]:ti[1]]]
+    def getTacklerFrames(self, data: DownsizedData):
+        frames = []
+        csvData = copy(data.playData)
+        for playInfo in data.playInfos:
+            returnerIdx = playInfo.returnerIdx
+            playerList = playInfo.playerList
+            for playerIdx in range(22):
+                if playerIdx == returnerIdx:
+                    continue
+                dataIndexes = playInfo.dataIndexes
+                tackleFrameIdx = None
+                closeContact = False
+                for frameIdx in range(dataIndexes):
+                    distance = data.playData[frameIdx, distanceStartIdx + playerIdx]
+                    if distance < tackleAttemptDistance:
+                        if not closeContact:
+                            tackleFrameIdx = frameIdx
+                            closeContact = True
+                    else:
+                        closeContact = False
+                if tackleFrameIdx is not None:
+                    newPlayInfo = copy(playInfo)
+                    newPlayInfo.tacklerIdx = playerIdx
+                    newPlayInfo.dataIndexes = tackleFrameIdx
+                    frames.append(newPlayInfo)
+        self.frameinfos = frames
+        self.csvData = data.playData
+        return [frames, data.playData]
 
-                # frame data reorder
-                fi = playInfo.dataIndexes
-                returnerDataIdx = 6 + 7 * returnerIdx
-                returnerTeamIdx = 6 if returnerIdx < 11 else 83
-                ri = (returnerTeamIdx, returnerDataIdx, returnerTeamIdx + 77)
-                ti = (6, 83) if returnerIdx >= 11 else (83, 160)
-                d = data.playData
-                frameData = [d[fi, ri[1]:ri[2]], d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
-                frameData = np.concatenate(frameData)
-                frameData = frameData.tolist()
-                frameCSV = [playInfo.playID, playInfo.playType, *newPlayerList, *frameData]
-                frameList.append(frameCSV)
-        else:
-            for playInfo in frames:
-                playID = playInfo.playID
-                playType = playInfo.playType
-                returnerID = playInfo.getReturnerID()
-                tacklerID = playInfo.getTacklerID()
-                success = playInfo.getSuccess()
-                ri = (6 + 7 * playInfo.returnerIdx, 13 + 7 * playInfo.returnerIdx)
-                ti = (6 + 7 * playInfo.tacklerIdx[0], 13 + 7 * playInfo.tacklerIdx[0])
-                fi = playInfo.dataIndexes
-                d = data.playData
-                frameData = [d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
-                frameData = np.concatenate(frameData).tolist()
-                frameCSV = [playID, playType, returnerID, tacklerID, *frameData, success]
-                frameList.append(frameCSV)
 
-        if saveFileName is not None:
-            pd.DataFrame(frameList).to_csv(saveFileName)
-        return frameList
+
+
+
 
     @staticmethod
     def prepareData():
