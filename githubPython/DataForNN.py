@@ -86,7 +86,7 @@ class DataForNN:
             returnerTeamIdx = 6 if returnerIdx < 11 else 83
             ri = (returnerTeamIdx, returnerDataIdx, returnerTeamIdx + 77)
             ti = (6, 83) if returnerIdx >= 11 else (83, 160)
-            d = data.playData
+            d = data
             frameData = [d[fi, ri[1]:ri[2]], d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
             frameData = np.concatenate(frameData)
             frameData = frameData.tolist()
@@ -108,7 +108,7 @@ class DataForNN:
             ri = (6 + 7 * playInfo.returnerIdx, 13 + 7 * playInfo.returnerIdx)
             ti = (6 + 7 * playInfo.tacklerIdx[0], 13 + 7 * playInfo.tacklerIdx[0])
             fi = playInfo.dataIndexes
-            d = data.playData
+            d = data
             frameData = [d[fi, ri[0]:ri[1]], d[fi, ti[0]:ti[1]]]
             frameData = np.concatenate(frameData).tolist()
             frameCSV = [playID, playType, returnerID, tacklerID, *frameData, success]
@@ -184,23 +184,10 @@ class DataForNN:
         data = processor.addDistanceData(data)
         spaceValueFileName = 'AnalyzedData/spaceValueSource.csv'
         nnDataFileName = 'AnalyzedData/nnDataSource.csv'
-        processor.getKeyFrames(data, forSpaceValue=True, saveFileName=spaceValueFileName)
-        processor.getKeyFrames(data, saveFileName=nnDataFileName)
+        processor.getKeyFrames(data)
+        processor.framesToCSVForSpace(saveFileName=spaceValueFileName)
+        processor.framesToCSVForNN(saveFileName=nnDataFileName)
 
 
 if __name__ == '__main__':
-    test = DataForNN()
-    t0 = time()
-    data = test.getData([3, 5])
-
-    print('preparation time:', time() - t0)
-    t0 = time()
-    data = test.addTackler(data)
-    data = test.addDistanceData(data)
-    print('processing time:', time() - t0)
-
-    spaceValueFileName = 'AnalyzedData/spaceValueSource.csv'
-    nnDataFileName = 'AnalyzedData/nnDataSource.csv'
-
-    test.getKeyFrames(data, forSpaceValue=True, saveFileName=spaceValueFileName)
-    test.getKeyFrames(data, saveFileName=nnDataFileName)
+    DataForNN.prepareData()

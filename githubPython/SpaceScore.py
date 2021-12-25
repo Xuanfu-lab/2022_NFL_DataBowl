@@ -1,9 +1,12 @@
 import numpy as np
 import math
+import pandas as pd
 from scipy.spatial.distance import euclidean
+from tqdm import tqdm
 
 nSample = 100
 boundingSquareEdgeL = 10
+
 
 def radius_calc(dist_to_ball):
     return 4 + 6 * (dist_to_ball >= 15) + (dist_to_ball ** 3) / 560 * (dist_to_ball < 15)
@@ -42,6 +45,34 @@ def compute_influence(x_point, y_point, x0, y0, x, y, s, o):
     return point_influence / player_influence
 
 
+def pitch_control(dataFileName, spaceScoreFileName):
+    idx = range(24, 178)
+    idx = [str(i) for i in idx]
+    data = pd.read_csv(dataFileName, header=0, index_col=0)[idx].to_numpy()
+    scoreVec = []
+    scoreVec = []
+    for row in tqdm(data):
+        xr, yr = row[:2]
+        score = 0
+        for i in range(11):
+            basei = 7 * i
+            x, y, v = row[basei:basei + 3]
+            o = row[basei + 5]
+            score += compute_influence(xr, yr, xr, yr, x, y, v, o)
+            basei = 77 + 7 * i
+            x, y, v = row[basei:basei + 3]
+            o = row[basei + 5]
+            score -= compute_influence(xr, yr, xr, yr, x, y, v, o)
+        scoreVec.append(score)
+    result = pd.DataFrame()
+    result['pitch control'] = scoreVec
+    result.to_csv(spaceScoreFileName)
+    return scoreVec
+
+
+
+
+
 def computeTackleAblt(rx, ry, rv, rdir, tx, ty, tv, tdir):
     centerPointx = (tx - rx) / 2 + rx
     centerPointy = (ty - ry) / 2 + ry
@@ -63,24 +94,25 @@ def computeTackleAblt(rx, ry, rv, rdir, tx, ty, tv, tdir):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-
-    score, scoreMap, x, y = computeTackleAblt(10, 10, 10, 180, 11, 10, 5, 0)
-    print(score)
-    X, Y = np.meshgrid(x, y)
-    score = np.flip(np.asarray([[i[0] for i in j] for j in scoreMap]), axis=0)
-    scoreR = np.flip(np.asarray([[i[1] for i in j] for j in scoreMap]), axis=0)
-    scoreT = np.flip(np.asarray([[i[2] for i in j] for j in scoreMap]), axis=0)
-
-    fig = plt.figure()
-    plot0 = fig.add_subplot(131, projection='3d')
-    plot1 = fig.add_subplot(132, projection='3d')
-    plot2 = fig.add_subplot(133, projection='3d')
-
-    plot0.plot_surface(X, Y, score, cmap=cm.coolwarm)
-    plot1.plot_surface(X, Y, scoreR, cmap=cm.coolwarm)
-    plot2.plot_surface(X, Y, scoreT, cmap=cm.coolwarm)
-
-    plot0.set_xlabel('x')
-    plt.show()
+    # import matplotlib.pyplot as plt
+    #
+    #
+    # score, scoreMap, x, y = computeTackleAblt(10, 10, 10, 180, 11, 10, 5, 0)
+    # print(score)
+    # X, Y = np.meshgrid(x, y)
+    # score = np.flip(np.asarray([[i[0] for i in j] for j in scoreMap]), axis=0)
+    # scoreR = np.flip(np.asarray([[i[1] for i in j] for j in scoreMap]), axis=0)
+    # scoreT = np.flip(np.asarray([[i[2] for i in j] for j in scoreMap]), axis=0)
+    #
+    # fig = plt.figure()
+    # plot0 = fig.add_subplot(131, projection='3d')
+    # plot1 = fig.add_subplot(132, projection='3d')
+    # plot2 = fig.add_subplot(133, projection='3d')
+    #
+    # plot0.plot_surface(X, Y, score, cmap=cm.coolwarm)
+    # plot1.plot_surface(X, Y, scoreR, cmap=cm.coolwarm)
+    # plot2.plot_surface(X, Y, scoreT, cmap=cm.coolwarm)
+    #
+    # plot0.set_xlabel('x')
+    # plt.show()
+    pitch_control('AnalyzedData/spaceValueSource.csv', 'AnalyzedData/spaceValues.csv')
