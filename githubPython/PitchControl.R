@@ -19,19 +19,13 @@ compute_influence <- function(x_point, y_point, x0, y0, x, y, s, o){
   # %*% = dot product
   # solve() finds the inverse of a matrix
   # t() finds the transpose of a matrix / vector
-  
-  # 2 x 2
   s_matrix = matrix(c(radius*(1+s_ratio), 0, 0, radius*(1-s_ratio)), nrow = 2, ncol = 2, byrow = TRUE)
   r_matrix = matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), nrow = 2, ncol = 2, byrow = TRUE)
   cov_matrix = ((r_matrix %*% s_matrix) %*% s_matrix) %*% solve(r_matrix)
   
-  
   norm_fact = (1/2*pi) * (1/sqrt(det(cov_matrix)))
-  
-  # 1 x 2
   mu_play = player_coords + s * c(cos(theta), sin(theta)) / 2
   
-  #                         1 x 2                         2 x 2                   2 x 1
   intermed_scalar_player = ((player_coords - mu_play) %*% solve(cov_matrix)) %*% t(t(player_coords - mu_play))
   intermed_scalar_point = ((point - mu_play) %*% solve(cov_matrix)) %*% t(t(point - mu_play))
   player_influence = norm_fact * exp(-0.5 * intermed_scalar_player[1, 1])
