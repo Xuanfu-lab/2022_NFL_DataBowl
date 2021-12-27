@@ -76,7 +76,7 @@ class DataForNN:
             # player list reorder
             returnerIdx = playInfo.returnerIdx
             ri = (0, returnerIdx, 11) if returnerIdx < 11 else (11, returnerIdx, 22)
-            ti = (0, 11) if returnerIdx < 11 else (11, 22)
+            ti = (0, 11) if returnerIdx >= 11 else (11, 22)
             pl = playInfo.playerList
             newPlayerList = [*pl[ri[1]:ri[2]], *pl[ri[0]:ri[1]], *pl[ti[0]:ti[1]]]
 
