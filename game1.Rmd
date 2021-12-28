@@ -1,0 +1,149 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+play=read.csv(file = 'game1raw.csv', row.names = 1)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+
+```{r}
+play1=add_column(play, d=NA, .after = 178)
+play1=add_column(play1, an=NA, .after = 178)
+play1=add_column(play1, d1=NA, .after = 171)
+play1=add_column(play1, an1=NA, .after = 171)
+play1=add_column(play1, d2=NA, .after = 164)
+play1=add_column(play1, an2=NA, .after = 164)
+play1=add_column(play1, d3=NA, .after = 157)
+play1=add_column(play1, an3=NA, .after = 157)
+play1=add_column(play1, d4=NA, .after = 150)
+play1=add_column(play1, an4=NA, .after = 150)
+play1=add_column(play1, d5=NA, .after = 143)
+play1=add_column(play1, an5=NA, .after = 143)
+play1=add_column(play1, d6=NA, .after = 136)
+play1=add_column(play1, an6=NA, .after = 136)
+play1=add_column(play1, d7=NA, .after = 129)
+play1=add_column(play1, an7=NA, .after = 129)
+play1=add_column(play1, d8=NA, .after = 122)
+play1=add_column(play1, an8=NA, .after = 122)
+play1=add_column(play1, d9=NA, .after = 115)
+play1=add_column(play1, an9=NA, .after = 115)
+play1=add_column(play1, d10=NA, .after = 108)
+play1=add_column(play1, an10=NA, .after = 108)
+play1=add_column(play1, d11=NA, .after = 101)
+play1=add_column(play1, an11=NA, .after = 101)
+play1=add_column(play1, d12=NA, .after = 94)
+play1=add_column(play1, an12=NA, .after = 94)
+play1=add_column(play1, d13=NA, .after = 87)
+play1=add_column(play1, an13=NA, .after = 87)
+play1=add_column(play1, d14=NA, .after = 80)
+play1=add_column(play1, an14=NA, .after = 80)
+play1=add_column(play1, d15=NA, .after = 73)
+play1=add_column(play1, an15=NA, .after = 73)
+play1=add_column(play1, d16=NA, .after = 66)
+play1=add_column(play1, an16=NA, .after = 66)
+play1=add_column(play1, d17=NA, .after = 59)
+play1=add_column(play1, an17=NA, .after = 59)
+play1=add_column(play1, d18=NA, .after = 52)
+play1=add_column(play1, an18=NA, .after = 52)
+play1=add_column(play1, d19=NA, .after = 45)
+play1=add_column(play1, an19=NA, .after = 45)
+play1=add_column(play1, d20=NA, .after = 38)
+play1=add_column(play1, an20=NA, .after = 38)
+```
+
+
+```{r}
+#calculate distance and angle
+returner_x=play1[25]
+returner_y=play1[26]
+d_col=seq.int(40,220,by=9)
+an_col=seq.int(39,219,by=9)
+x_col=seq.int(32,212, by=9)
+y_col=seq.int(33,213,by=9)
+for(a in 1:length(d_col)){
+  d=d_col[a]
+  an=an_col[a]
+  x=x_col[a]
+  y=y_col[a]
+  x_diff=play1[x]-returner_x
+  y_diff=play1[y]-returner_y
+  play1[d]=sqrt(x_diff^2+y_diff^2)
+  play1[an]=atan((play1[x]-returner_x)/(play1[y]-returner_y)) #need further review
+  for(b in 1:nrow(play1[an])){
+    if(x_diff[b, ]>=0 & y_diff[b, ]<=0){
+      play1[an][b, ]=pi+play1[an][b, ]
+    }
+    else if(x_diff[b, ]<0 & y_diff[b, ]>0){
+      play1[an][b, ]=2*pi+play1[an][b, ]
+    }
+    else if(x_diff[b, ]<0 & y_diff[b, ]<=0){
+      play1[an][b, ]=pi+play1[an][b, ]
+    }
+  }
+}
+```
+
+
+```{r}
+ss=data.frame(matrix(NA, nrow=nrow(play1), ncol=21))
+for(a in 1:10){
+  for(b in 1:nrow(play1)){
+ ss[b, a]=compute_influence(play1[b, 25],play1[b, 26],play1[b, 25],play1[b, 26], play1[b, 9*a+23], play1[b, 9*a+24], play1[b, 9*a+25], play1[b, 9*a+28])
+  }
+}
+for(a in 11:21){
+  for(b in 1:nrow(play1)){
+ ss[b, a]=-compute_influence(play1[b, 25],play1[b, 26],play1[b, 25],play1[b, 26], play1[b, 9*a+23], play1[b, 9*a+24], play1[b, 9*a+25], play1[b, 9*a+28])
+  }
+}
+```
+
+```{r}
+play2=add_column(play1, ss1=NA, .after = 220)
+play2=add_column(play2, ss2=NA, .after = 211)
+play2=add_column(play2, ss3=NA, .after = 202)
+play2=add_column(play2, ss4=NA, .after = 193)
+play2=add_column(play2, ss5=NA, .after = 184)
+play2=add_column(play2, ss6=NA, .after = 175)
+play2=add_column(play2, ss7=NA, .after = 166)
+play2=add_column(play2, ss8=NA, .after = 157)
+play2=add_column(play2, ss9=NA, .after = 148)
+play2=add_column(play2, ss10=NA, .after = 139)
+play2=add_column(play2, ss11=NA, .after = 130)
+play2=add_column(play2, ss12=NA, .after = 121)
+play2=add_column(play2, ss13=NA, .after = 112)
+play2=add_column(play2, ss14=NA, .after = 103)
+play2=add_column(play2, ss15=NA, .after = 94)
+play2=add_column(play2, ss16=NA, .after = 85)
+play2=add_column(play2, ss17=NA, .after = 76)
+play2=add_column(play2, ss18=NA, .after = 67)
+play2=add_column(play2, ss19=NA, .after = 58)
+play2=add_column(play2, ss20=NA, .after = 49)
+play2=add_column(play2, ss21=NA, .after = 40)
+```
+```{r}
+for(a in 1:21){
+  play2[a*10+31]=ss[a]
+}
+```
+
+```{r}
+write.csv(play2, file='2502.csv')
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

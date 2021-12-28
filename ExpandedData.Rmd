@@ -12,7 +12,7 @@ source('PitchControl.R')
 ```
 
 ```{r}
-space=read.csv('spaceValueSource.csv',row.names = 1)
+space=read.csv('/AnalyzedData/spaceValueSource.csv',row.names = 1)
 ```
 
 ```{r}
