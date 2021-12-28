@@ -14,7 +14,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-play=read.csv(file = 'game1raw.csv', row.names = 1)
+play=read.csv(file = 'AnalyzedData/game1raw.csv', row.names = 1)
 ```
 
 ## Including Plots
@@ -144,6 +144,6 @@ for(a in 1:21){
 ```
 
 ```{r}
-write.csv(play2, file='2502.csv')
+write.csv(play2, file='AnalyzedData/game1.csv')
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

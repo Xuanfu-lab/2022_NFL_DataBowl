@@ -12,7 +12,7 @@ source('PitchControl.R')
 ```
 
 ```{r}
-space=read.csv('/AnalyzedData/spaceValueSource.csv',row.names = 1)
+space=read.csv('AnalyzedData/spaceValueSource.csv',row.names = 1)
 ```
 
 ```{r}
@@ -213,7 +213,7 @@ big=rbind(space1,space2)
 biggg=rbind(space1, space2, space3)
 ```
 ```{r}
-nn=read.csv('nnDataSource.csv')
+nn=read.csv('AnalyzedData/nnDataSource.csv')
 ```
 ```{r}
 big$t1=0.0
@@ -366,6 +366,6 @@ for(a in 1:21){
 ```
 
 ```{r}
-write.csv(big2, 'big.csv')
-write.csv(biggg2, 'biggg.csv')
+write.csv(big2, 'AnalyzedData/big.csv')
+write.csv(biggg2, 'AnalyzedData/biggg.csv')
 ```
