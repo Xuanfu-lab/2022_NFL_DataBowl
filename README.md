@@ -21,7 +21,7 @@ Steps to reproduce results:
 4. Run **_XXXX.py_**
 5. Run **_XXXX.py_**
 6. After running the above data prep & cleaning steps, folder **_AnalyzedData/_** should have **_nnDataSource.csv, spaceValues.csv, spaceValueSource.csv_**
-7. *AnalyzedData/game1raw.csv* was manually created using Excel from **_DownsizedData/combinedData2018.csv_** (row 505-597, and columns are rearranged)
+7. **_AnalyzedData/game1raw.csv_** was manually created using Excel from **_DownsizedData/combinedData2018.csv_** (row 505-597, and columns are rearranged)
 8. Run **_game1.Rmd_**, you will get **_AnalyzedData/game1.csv_**
 9. Run **_ExpandedData.Rmd_**, you will get **_AnalyzedData/big.csv_** and **_AnalyzedData/biggg.csv_**
 10. Run **_NNModel-AllPlayers.ipynb_** in Jupyter Notebook, you will get the neural network model and its results. Additionally it will write out 2 csv: **_AnalyzedData/returnerScoreBoard.csv_** and **_AnalyzedData/tacklerScoreBoard.csv_**, which were used in our final report.
