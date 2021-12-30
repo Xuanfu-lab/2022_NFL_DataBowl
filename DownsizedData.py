@@ -63,7 +63,7 @@ def transpose(listOfLists: [[]]) -> [[]]:
 
 
 class DownsizedData:
-    def __init__(self, fileName, data=None, csvData=None):
+    def __init__(self, fileName=None, data=None, csvData=None):
 
         self.rawDataFileName = fileName
         self.playInfos = data
