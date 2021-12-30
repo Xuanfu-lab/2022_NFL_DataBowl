@@ -11,10 +11,12 @@ Report File is **_decompose-tackling-a-neural-network-approach.ipynb_**
 
 Alternatively: https://www.kaggle.com/hongzeliu7/decompose-tackling-a-neural-network-approach
 
+Environment: Python 3.8, R 4.0.3
+
 Steps to reproduce results:
 
 1. Download all files from this repository 
-2. Install necessary packages, and set working directory to the downloaded path (Please use Python 3.8)
+2. Install necessary packages, and set working directory to the downloaded path
 3. Download raw data from https://www.kaggle.com/c/nfl-big-data-bowl-2022/data, and store raw data in **_/rawData_**
 4. Run **_XXXX.py_**
 5. Run **_XXXX.py_**
