@@ -316,7 +316,7 @@ class DownsizedData:
         print('finished')
 
     @staticmethod
-    def initialize(fromRawData=True, fileNames):
+    def initialize(fileNames, fromRawData=True):
         data = None
         if fromRawData:
             dataList = []
