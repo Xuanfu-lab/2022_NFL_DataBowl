@@ -11,12 +11,12 @@ uniquePlayFileName = 'DownsizedData/uniquePlays.json'
 nan = float('nan')
 
 
-def loadData(rawFilename: str, nrows: int = None) -> pd.DataFrame:
-    filename = 'rawData/' + rawFilename
-    if nrows is None:
-        return pd.read_csv(filename)
-    else:
-        return pd.read_csv(filename, nrows=nrows)
+# def loadData(rawFilename: str, nrows: int = None) -> pd.DataFrame:
+#     filename = 'rawData/' + rawFilename
+#     if nrows is None:
+#         return pd.read_csv(filename)
+#     else:
+#         return pd.read_csv(filename, nrows=nrows)
 
 
 def getPlayerInfo(row):
@@ -63,9 +63,9 @@ def transpose(listOfLists: [[]]) -> [[]]:
 
 
 class DownsizedData:
-    def __init__(self, year: int = None, data=None, csvData=None):
+    def __init__(self, fileName, data=None, csvData=None):
 
-        self.year = year
+        self.rawDataFileName = fileName
         self.playInfos = data
         self.playData = csvData
         self.plays = PlaysAnalysis().getUniquePlay()
@@ -74,8 +74,7 @@ class DownsizedData:
     def dataDownsizing(self) -> []:
 
         print('downsizing data...')
-        trackingFileName = f'tracking{str(self.year)}.csv'
-        rawData = loadData(trackingFileName)
+        rawData = pd.read_csv(self.rawDataFileName)
         print('finished loading tracking csv file')
 
         t0 = time()
@@ -317,15 +316,12 @@ class DownsizedData:
         print('finished')
 
     @staticmethod
-    def initialize(fromRawData=True):
+    def initialize(fromRawData=True, fileNames):
         data = None
         if fromRawData:
-            years = [2018, 2019, 2020]
             dataList = []
-            for year in years:
-                playInfoFileName = f'DownsizedData/playInfo{year}.json'
-                playDataFileName = f'DownsizedData/playData{year}.csv'
-                data = DownsizedData(year)
+            for trackingDataFileName in fileNames['tracking']:
+                data = DownsizedData(trackingDataFileName)
                 playInfoData = data.dataDownsizing()
                 data.restructure(playInfoData, transposeCSV=True)
                 dataList.append(data)

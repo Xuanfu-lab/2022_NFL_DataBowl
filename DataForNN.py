@@ -9,6 +9,8 @@ from DownsizedData import DownsizedData
 from PlaysAnalysis import uniquePlayID
 from TacklePlayInfo import TacklePlayInfo
 from ScountingAnalysis import ScountingAnalysis
+import ScountingAnalysis as ScoutingModule
+from abc import abstractstaticmethod
 
 distanceStartIdx = 160
 tackleAttemptDistance = 1.5
@@ -187,6 +189,11 @@ class DataForNN:
         processor.getKeyFrames(data)
         processor.framesToCSVForSpace(saveFileName=spaceValueFileName)
         processor.framesToCSVForNN(saveFileName=nnDataFileName)
+        
+        
+    @staticmethod
+    def initialize(fileNames):
+        ScoutingModule.fileName = fileNames['scouting']
 
 
 if __name__ == '__main__':

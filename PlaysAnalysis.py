@@ -6,8 +6,8 @@ def uniquePlayID(gameID, playID):
 
 
 class PlaysAnalysis:
-    def __init__(self):
-        self.sourceName = 'rawData/plays.csv'
+    def __init__(self, fileNames):
+        self.sourceName = fileNames['plays']
         self.fileName = 'DownsizedData/plays.json'
         self.plays = None
 
@@ -43,8 +43,8 @@ class PlaysAnalysis:
         return self.plays
 
     @staticmethod
-    def initialize():
-        PlaysAnalysis().getUniquePlay(new=True)
+    def initialize(fileNames):
+        PlaysAnalysis(fileNames).getUniquePlay(new=True)
 
 if __name__ == '__main__':
     plays = PlaysAnalysis()

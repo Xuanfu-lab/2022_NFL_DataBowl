@@ -12,8 +12,10 @@ class PFFMalfunction(KeyError):
 
 
 class PlayerAnalysis:
-    def __init__(self):
-        self.fileName = 'rawData/players.csv'
+    def __init__(self, fileNames):
+        self.fileName = fileNames['players']
+        self.trackingDataFileNames = fileNames['tracking']
+        self.gamesDataFileName = fileNames['games']
         self.players = None
         self.playerDict = None
 
@@ -41,11 +43,9 @@ class PlayerAnalysis:
         if new:
             print('building player abbr dictionary...')
             dataFromTracking = defaultdict(lambda: defaultdict(dict))
-            years = [2018, 2019, 2020]
             oldPlayerID = None
-            for year in years:
-                trackingFileName = f'rawData/tracking{year}.csv'
-                trackingData = pd.read_csv(trackingFileName)
+            for trackingDataFileName in self.trackingDataFileNames:
+                trackingData = pd.read_csv(trackingDataFileName)
                 for frame in tqdm(trackingData.itertuples(name=None)):
                     playerID = frame[10]
                     if playerID != oldPlayerID:
@@ -61,7 +61,7 @@ class PlayerAnalysis:
                         dataFromTracking[gameID][team][jerseyNum] = playerID
 
             teamInfo = {}
-            gamesFile = 'rawData/games.csv'
+            gamesFile = self.gamesDataFileName
             gamesData = pd.read_csv(open(gamesFile))
             for game in tqdm(gamesData.itertuples(name=None)):
                 gameID = int(game[1])
@@ -82,8 +82,8 @@ class PlayerAnalysis:
         return self.playerDict
 
     @staticmethod
-    def initialize():
-        PlayerAnalysis().getPlayerAbbr(new=True)
+    def initialize(fileNames):
+        PlayerAnalysis(fileNames).getPlayerAbbr(new=True)
 
 
 

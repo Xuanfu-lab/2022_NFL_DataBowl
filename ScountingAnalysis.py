@@ -4,14 +4,15 @@ from math import isnan
 from PlaysAnalysis import uniquePlayID
 from PlayerAnalysis import PlayerAnalysis, PFFMalfunction
 
+fileName = 'rawData/PFFScoutingData.csv'
+
 class ScountingAnalysis:
     def __init__(self):
-        pass
+        self.fileName = fileName
 
 
     def readRawData(self):
-        fileName = 'rawData/PFFScoutingData.csv'
-        rawData = pd.read_csv(fileName)
+        rawData = pd.read_csv(self.fileName)
         return rawData
 
     def tacklerInfo(self, playIDList):
