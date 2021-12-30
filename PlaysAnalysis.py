@@ -45,7 +45,7 @@ class PlaysAnalysis:
 
     @staticmethod
     def initialize(fileNames):
-        sourceFileName = fileNames["plays"]
+        sourceFileName = fileNames['plays']
         PlaysAnalysis().getUniquePlay(new=True)
 
 if __name__ == '__main__':
