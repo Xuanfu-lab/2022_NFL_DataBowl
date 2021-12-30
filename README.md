@@ -1,4 +1,5 @@
 # 2022_NFL_DataBowl
+Team name: GoBears
 
 | Name of Collaborator | e-mail | Role | School & Major |
 | ------------- | ------------- | ------------- | ------------- |
@@ -6,8 +7,9 @@
 | Qitai Meng    | neomeng@berkeley.edu   | Python Engineer, High Performance Computing  | UC Berkeley: Mechanical Engineering (class of 2022)  |
 | Xuanfu Lu     | xuanfu724@gmail.com  | Python Engineer, Neural Network & Machine Learning | UC Berkeley: Statistics, Economics (class of 2020) |
 
-Report File is decompose-tackling-a-neural-network-approach.ipynb
-Alternatively https://www.kaggle.com/hongzeliu7/decompose-tackling-a-neural-network-approach#Decompose-Tackling,-a-Neural-Network-Approach
+Report File is *decompose-tackling-a-neural-network-approach.ipynb*
+
+Alternatively: https://www.kaggle.com/hongzeliu7/decompose-tackling-a-neural-network-approach
 
 Steps to reproduce results:
 
