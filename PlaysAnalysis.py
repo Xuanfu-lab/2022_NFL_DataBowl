@@ -1,7 +1,6 @@
 import pandas as pd
 import json
 
-sourceFileName = None
 
 def uniquePlayID(gameID, playID):
     return gameID + playID * 10000000000
@@ -9,7 +8,6 @@ def uniquePlayID(gameID, playID):
 
 class PlaysAnalysis:
     def __init__(self):
-        self.sourceName = sourceFileName
         self.fileName = 'DownsizedData/plays.json'
         self.plays = None
 
@@ -18,10 +16,10 @@ class PlaysAnalysis:
         pass
 
 
-    def getUniquePlay(self, new=False):
+    def getUniquePlay(self, new=False, sourceFileName = None):
         if new:
             print('fetching plays info...')
-            playsData = pd.read_csv(self.sourceName)
+            playsData = pd.read_csv(sourceFileName)
             result = 'Return'
             playtype = ['Punt', 'Kickoff']  # [0, 1]
             plays = []
@@ -46,7 +44,7 @@ class PlaysAnalysis:
     @staticmethod
     def initialize(fileNames):
         sourceFileName = fileNames['plays']
-        PlaysAnalysis().getUniquePlay(new=True)
+        PlaysAnalysis().getUniquePlay(new=True, sourceFileName=sourceFileName)
 
 if __name__ == '__main__':
     plays = PlaysAnalysis()
