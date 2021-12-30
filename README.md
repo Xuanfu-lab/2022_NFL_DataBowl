@@ -18,8 +18,8 @@ Steps to reproduce results:
 1. Download all files from this repository 
 2. Install necessary packages, and set directory to the downloaded path
 3. Download raw data from https://www.kaggle.com/c/nfl-big-data-bowl-2022/data, and store raw data in **_rawData/_**
-4. Run **_PlaysAnalysis.py_**
-5. Run **_main.py_** (runtime ~10 min)
+4. Run **_main.py_** (runtime ~10 min)
+5. Run 
 6. After running the above data prep & cleaning steps, folder **_AnalyzedData/_** should have **_nnDataSource.csv, spaceValues.csv, spaceValueSource.csv_**
 7. **_AnalyzedData/game1raw.csv_** was manually created using Excel from **_DownsizedData/combinedData2018.csv_** (row 505-597, and columns are rearranged)
 8. Run **_game1.Rmd_**, you will get **_AnalyzedData/game1.csv_**
