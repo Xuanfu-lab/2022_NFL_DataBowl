@@ -1,20 +1,21 @@
 import pandas as pd
 import json
 
+sourceFileName = None
+
 def uniquePlayID(gameID, playID):
     return gameID + playID * 10000000000
 
 
 class PlaysAnalysis:
-    def __init__(self, fileNames):
-        self.sourceName = fileNames['plays']
+    def __init__(self):
+        self.sourceName = sourceFileName
         self.fileName = 'DownsizedData/plays.json'
         self.plays = None
 
 
     def getTacklers(self):
         pass
-
 
 
     def getUniquePlay(self, new=False):
@@ -44,7 +45,8 @@ class PlaysAnalysis:
 
     @staticmethod
     def initialize(fileNames):
-        PlaysAnalysis(fileNames).getUniquePlay(new=True)
+        sourceFileName = fileNames["plays"]
+        PlaysAnalysis().getUniquePlay(new=True)
 
 if __name__ == '__main__':
     plays = PlaysAnalysis()
