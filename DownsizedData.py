@@ -279,7 +279,7 @@ class DownsizedData:
         objList = []
         for i in range(nObjs):
             eventType = dataList[i]
-            eventData = DownsizedData(self.year)
+            eventData = DownsizedData()
             eventData.restructure(eventType)
             eventData.save(*fileNames[i])
             objList.append(eventData)
