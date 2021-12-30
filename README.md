@@ -3,7 +3,7 @@ Team name: GoBears
 
 | Name of Collaborator | e-mail | Role | School & Major |
 | ------------- | ------------- | ------------- | ------------- |
-| Hongze Liu    | honzliu@gmail.com  | Project Manager, Visualization | UC Berkeley: Mathematics, Statistics, History (class of 2020)  |
+| Hongze Liu    | honzliu@gmail.com  | Project Lead, Visualization | UC Berkeley: Mathematics, Statistics, History (class of 2020)  |
 | Qitai Meng    | neomeng@berkeley.edu   | Python Engineer, High Performance Computing  | UC Berkeley: Mechanical Engineering (class of 2022)  |
 | Xuanfu Lu     | xuanfu724@gmail.com  | Python Engineer, Neural Network & Machine Learning | UC Berkeley: Statistics, Economics (class of 2020) |
 
