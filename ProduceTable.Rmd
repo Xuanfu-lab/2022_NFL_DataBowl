@@ -1,0 +1,84 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+tackler=read.csv('AnalyzedData/tacklerScoreBoard.csv')
+tackler=tackler[tackler$X1.000000000000000000e.00>=10, ]
+tackler=tackler[order(-tackler$X0.000000000000000000e.00.1), ]
+tackler=tackler[1:10, ]
+tackler[4]=round(tackler[4], 3)
+```
+```{r}
+colnames(tackler)=c('NFL ID', 'Name', 'Tackling Attempts', 'Average Score')
+tackler$Name=Name=c('Ashton Dulin', 'A.J.Moore', 'Charles Washinton', 'Chris Milton', 'Jamal Perry', 'Dee Virgin', 'Ryan Smith', 'Charvarius Ward', 'Josh Jackson', 'Leon Jacobs')
+```
+```{r}
+library(reactable)
+```
+
+```{r}
+data <- tackler
+
+reactable(
+  data,
+  striped = TRUE,
+  bordered = TRUE
+)
+```
+```{r}
+returner=read.csv('AnalyzedData/returnerScoreBoard.csv')
+returner=returner[returner$X1.800000000000000000e.01>10, ]
+returner=returner[order(-returner$X1.672026316324869910e.01), ]
+returner=returner[1:10, ]
+returner[4]=round(returner[4], 3)
+colnames(returner)=c('NFL ID', 'Name', 'Returning Attempts', 'Average Score')
+returner$Name=c('Odell Beckham', 'David Moore', 'CeeDee Lamb', 'Senorise Perry', 'Steven Sims', 'Preston Williams', 'Diontae Johnson', 'Adoree’ Jackson', 'C.J.Prosise', 'Vynicnt Smith')
+```
+```{r}
+data <- returner
+
+reactable(
+  data,
+  striped = TRUE,
+  bordered = TRUE
+)
+```
+```{r}
+tt=data.frame(
+  'Y(model output)'=c(0,1,2,3,4,5,6,7,8,9,10),
+  'Jersey Number'=c('BAL 4', 'BAL 41', 'BAL 46', 'BAL 87', 'BAL 86', 'BAL 10', 'BAL 26', 'BAL 48', 'BAL 54', 'BAL 36', 'BAL 49'),
+  'NFIID'=c(31018, 36060, 36086, 42398, 42514, 43396, 43498, 43693, 44859, 44999, 46958),
+  'Tackle Sequence(eye-test from video)'=c('8th', '3rd', '6th', '9th', NA, NA, '7th', NA, '2nd', '1st', '4th'),
+  'PFF Label'=c('mistackle', NA, NA, 'tackler', NA, NA, NA, NA, 'mistackler', NA, NA)
+  
+)
+```
+```{r}
+colnames(tt)=c('Y(model output)', 'Jersey Number', 'NFI ID', 'Tackle Sequence (eye-test from video)', 'PFF Label')
+```
+
+```{r}
+library('htmlTable')
+where=rbind(c(2,5), c(3,5), c(7,5), c(10,5), c(11,5))
+style=c('color:red')
+cell=matrix('', nrow(tt), ncol(tt))
+cell[where]=style
+htmlTable(tt, css.cell=cell)
+```
+
+```{r}
+data <- tt
+
+reactable(
+  data,
+  striped = TRUE,
+  bordered = TRUE,
+  pagination=FALSE
+)
+```
