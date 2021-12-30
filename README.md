@@ -7,21 +7,21 @@ Team name: GoBears
 | Qitai Meng    | neomeng@berkeley.edu   | Python Engineer, High Performance Computing  | UC Berkeley: Mechanical Engineering (class of 2022)  |
 | Xuanfu Lu     | xuanfu724@gmail.com  | Python Engineer, Neural Network & Machine Learning | UC Berkeley: Statistics, Economics (class of 2020) |
 
-Report File is *decompose-tackling-a-neural-network-approach.ipynb*
+Report File is **_decompose-tackling-a-neural-network-approach.ipynb_**
 
 Alternatively: https://www.kaggle.com/hongzeliu7/decompose-tackling-a-neural-network-approach
 
 Steps to reproduce results:
 
-1. Download all files from this repository
-2. Install necessary packages, and set working directory to the downloaded path
-3. Download raw data from https://www.kaggle.com/c/nfl-big-data-bowl-2022/data
-4. Store raw data in */rawData*
-5. Run *XXXX.py*
-6. Run *XXXX.py*
-7. After running the above data prep & cleaning steps, folder *AnalyzedData/* should have *nnDataSource.csv, spaceValues.csv, spaceValueSource.csv*
-8. *AnalyzedData/game1raw.csv* was manually created using Excel from *DownsizedData/combinedData2018.csv* (row 505-597, and columns are rearranged)
-9. Run *game1.Rmd*, you will get *AnalyzedData/game1.csv*
-10. Run *ExpandedData.Rmd*, you will get *AnalyzedData/big.csv* and *AnalyzedData/biggg.csv*
-11. Run *NNModel-AllPlayers.ipynb* in Jupyter Notebook, you will get the neural network model and its results. Additionally it will write out 2 csv: *AnalyzedData/returnerScoreBoard.csv* and *AnalyzedData/tacklerScoreBoard.csv*, which were used in our final report.
-12. Run ProduceTable.Rmd to reproduce graphs used in the report
+1. Download all files from this repository 
+2. Install necessary packages, and set working directory to the downloaded path (Please use Python 3.8)
+4. Download raw data from https://www.kaggle.com/c/nfl-big-data-bowl-2022/data
+5. Store raw data in **_/rawData_**
+6. Run **_XXXX.py_**
+7. Run **_XXXX.py_**
+8. After running the above data prep & cleaning steps, folder **_AnalyzedData/_** should have **_nnDataSource.csv, spaceValues.csv, spaceValueSource.csv_**
+9. *AnalyzedData/game1raw.csv* was manually created using Excel from **_DownsizedData/combinedData2018.csv_** (row 505-597, and columns are rearranged)
+10. Run **_game1.Rmd_**, you will get **_AnalyzedData/game1.csv_**
+11. Run **_ExpandedData.Rmd_**, you will get **_AnalyzedData/big.csv_** and **_AnalyzedData/biggg.csv_**
+12. Run **_NNModel-AllPlayers.ipynb_** in Jupyter Notebook, you will get the neural network model and its results. Additionally it will write out 2 csv: **_AnalyzedData/returnerScoreBoard.csv_** and **_AnalyzedData/tacklerScoreBoard.csv_**, which were used in our final report.
+13. Run **_ProduceTable.Rmd_** to reproduce graphs used in the report
