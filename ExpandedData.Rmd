@@ -139,8 +139,6 @@ for(a in 1:length(d_col)){
 }
 ```
 
-
-
 ```{r}
 #flip left side right(rotate about x axis)
 space3=rbind(space1, space2)
@@ -213,10 +211,13 @@ for(a in 1:length(d_col)){
 big=rbind(space1,space2)
 biggg=rbind(space1, space2, space3)
 ```
+
 ```{r}
 nn=read.csv('AnalyzedData/nnDataSource.csv')
 ```
+
 ```{r}
+#add tackler information
 big$t1=0.0
 big$t2=0.0
 big$t3=0.0
@@ -240,6 +241,7 @@ biggg$t9=0.0
 biggg$t10=0.0
 biggg$t11=0.0
 ```
+
 ```{r}
 big_t_matrix=big[1:7120, 221:231]#tackler identification
 tId_matrix=big[1:7120, 14:24]# all tackler id
@@ -256,6 +258,7 @@ for(a in 1:nrow(big_t_matrix)){
   big_t_matrix[a, index]=1.0
 }
 ```
+
 ```{r}
 big1=big
 biggg1=biggg
@@ -266,6 +269,7 @@ biggg1[7121:14240, 221:231]=big_t_matrix
 biggg1[14241:21360,221:231]=big_t_matrix
 biggg1[21361:28480, 221:231]=big_t_matrix
 ```
+
 ```{r}
 nn_t=nn$X18
 big1$ts=NA
@@ -276,7 +280,6 @@ biggg1$ts[7121:14240]=nn_t
 biggg1$ts[14241:21360]=nn_t
 biggg1$ts[21361:28480]=nn_t
 ```
-
 
 ```{r}
 ss=data.frame(matrix(NA, nrow=nrow(big1), ncol=21))
@@ -315,13 +318,12 @@ big2=add_column(big2, ss19=NA, .after = 58)
 big2=add_column(big2, ss20=NA, .after = 49)
 big2=add_column(big2, ss21=NA, .after = 40)
 ```
+
 ```{r}
 for(a in 1:21){
   big2[a*10+31]=ss[a]
 }
 ```
-
-
 
 ```{r}
 ss=data.frame(matrix(NA, nrow=nrow(biggg1), ncol=21))
@@ -360,6 +362,7 @@ biggg2=add_column(biggg2, ss19=NA, .after = 58)
 biggg2=add_column(biggg2, ss20=NA, .after = 49)
 biggg2=add_column(biggg2, ss21=NA, .after = 40)
 ```
+
 ```{r}
 for(a in 1:21){
   biggg2[a*10+31]=ss[a]
