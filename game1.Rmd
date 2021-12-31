@@ -5,24 +5,17 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library('tibble')
+source('PitchControl.R')
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
+```{r}
 play=read.csv(file = 'AnalyzedData/game1raw.csv', row.names = 1)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-
 ```{r}
+# initialize
 play1=add_column(play, d=NA, .after = 178)
 play1=add_column(play1, an=NA, .after = 178)
 play1=add_column(play1, d1=NA, .after = 171)
@@ -67,7 +60,6 @@ play1=add_column(play1, d20=NA, .after = 38)
 play1=add_column(play1, an20=NA, .after = 38)
 ```
 
-
 ```{r}
 #calculate distance and angle
 returner_x=play1[25]
@@ -101,6 +93,7 @@ for(a in 1:length(d_col)){
 
 
 ```{r}
+#add features
 ss=data.frame(matrix(NA, nrow=nrow(play1), ncol=21))
 for(a in 1:10){
   for(b in 1:nrow(play1)){
@@ -137,6 +130,7 @@ play2=add_column(play2, ss19=NA, .after = 58)
 play2=add_column(play2, ss20=NA, .after = 49)
 play2=add_column(play2, ss21=NA, .after = 40)
 ```
+
 ```{r}
 for(a in 1:21){
   play2[a*10+31]=ss[a]
@@ -146,4 +140,3 @@ for(a in 1:21){
 ```{r}
 write.csv(play2, file='AnalyzedData/game1.csv')
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
