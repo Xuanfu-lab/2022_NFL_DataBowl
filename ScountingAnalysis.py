@@ -7,7 +7,7 @@ from PlayerAnalysis import PlayerAnalysis, PFFMalfunction
 fileName = 'rawData/PFFScoutingData.csv'
 
 class ScountingAnalysis:
-    def __init__(self):
+    def __init__(self, fileName):
         self.fileName = fileName
 
 

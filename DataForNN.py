@@ -9,8 +9,6 @@ from DownsizedData import DownsizedData
 from PlaysAnalysis import uniquePlayID
 from TacklePlayInfo import TacklePlayInfo
 from ScountingAnalysis import ScountingAnalysis
-import ScountingAnalysis as ScoutingModule
-from abc import abstractstaticmethod
 
 distanceStartIdx = 160
 tackleAttemptDistance = 1.5
@@ -24,6 +22,7 @@ def distanceJIT(data, returnerPos):
             (returnerPos[:, 0] - data[:, 6 + 7 * i]) ** 2 + (returnerPos[:, 1] - data[:, 7 + 7 * i]) ** 2)
     return result
 
+scoutingSourceFileName = 'rawData/PFFScoutingData.csv'
 
 
 class DataForNN:
@@ -41,7 +40,7 @@ class DataForNN:
         return data
 
     def addTackler(self, data: DownsizedData):
-        scountingData = ScountingAnalysis()
+        scountingData = ScountingAnalysis(scoutingSourceFileName)
         playIDList = [playInfo.playID for playInfo in data.playInfos]
         tacklerInfo = scountingData.tacklerInfo(playIDList)
         for playInfo in data.playInfos:
@@ -193,7 +192,7 @@ class DataForNN:
         
     @staticmethod
     def initialize(fileNames):
-        ScoutingModule.fileName = fileNames['scouting']
+        scoutingSourceFileName = fileNames['scouting']
 
 
 if __name__ == '__main__':

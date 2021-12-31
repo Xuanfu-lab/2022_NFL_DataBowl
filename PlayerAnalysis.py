@@ -12,10 +12,8 @@ class PFFMalfunction(KeyError):
 
 
 class PlayerAnalysis:
-    def __init__(self, fileNames):
-        self.fileName = fileNames['players']
-        self.trackingDataFileNames = fileNames['tracking']
-        self.gamesDataFileName = fileNames['games']
+    def __init__(self):
+
         self.players = None
         self.playerDict = None
 
@@ -40,50 +38,49 @@ class PlayerAnalysis:
 
 
     def getPlayerAbbr(self, new=False):
-        if new:
-            print('building player abbr dictionary...')
-            dataFromTracking = defaultdict(lambda: defaultdict(dict))
-            oldPlayerID = None
-            for trackingDataFileName in self.trackingDataFileNames:
-                trackingData = pd.read_csv(trackingDataFileName)
-                for frame in tqdm(trackingData.itertuples(name=None)):
-                    playerID = frame[10]
-                    if playerID != oldPlayerID:
-                        oldPlayerID = playerID
-                        if playerID is None:
-                            continue
-                        if isnan(playerID):
-                            continue
-                        playerID = int(playerID)
-                        gameID = int(frame[16])
-                        team = frame[14]
-                        jerseyNum = int(frame[12])
-                        dataFromTracking[gameID][team][jerseyNum] = playerID
 
-            teamInfo = {}
-            gamesFile = self.gamesDataFileName
-            gamesData = pd.read_csv(open(gamesFile))
-            for game in tqdm(gamesData.itertuples(name=None)):
-                gameID = int(game[1])
-                teamInfo[gameID] = [*game[6:8]]
-            for gameID in tqdm(dataFromTracking):
-                homeAwayData = dataFromTracking[gameID]
-                teamAbbr = teamInfo[gameID]
-                teamData = {teamAbbr[0]: homeAwayData['home'], teamAbbr[1]: homeAwayData['away']}
-                dataFromTracking[gameID] = teamData
-            json.dump(dataFromTracking, open(playerAbbrFileName, 'w'))
-            self.playerDict = dataFromTracking
-        else:
-            playerDictList = json.load(open(playerAbbrFileName, 'r'))
-            playerDict = {
-                int(gameID): {teamAbbr: {int(jerseyNum): playerID for jerseyNum, playerID in players.items()} for
-                              teamAbbr, players in game.items()} for gameID, game in playerDictList.items()}
-            self.playerDict = playerDict
+        playerDictList = json.load(open(playerAbbrFileName, 'r'))
+        playerDict = {
+            int(gameID): {teamAbbr: {int(jerseyNum): playerID for jerseyNum, playerID in players.items()} for
+                          teamAbbr, players in game.items()} for gameID, game in playerDictList.items()}
+        self.playerDict = playerDict
         return self.playerDict
 
     @staticmethod
     def initialize(fileNames):
-        PlayerAnalysis(fileNames).getPlayerAbbr(new=True)
+        print('building player abbr dictionary...')
+        gamesDataFileName = fileNames['games']
+        trackingDataFileNames = fileNames['tracking']
+        dataFromTracking = defaultdict(lambda: defaultdict(dict))
+        oldPlayerID = None
+        for trackingDataFileName in trackingDataFileNames:
+            trackingData = pd.read_csv(trackingDataFileName)
+            for frame in tqdm(trackingData.itertuples(name=None)):
+                playerID = frame[10]
+                if playerID != oldPlayerID:
+                    oldPlayerID = playerID
+                    if playerID is None:
+                        continue
+                    if isnan(playerID):
+                        continue
+                    playerID = int(playerID)
+                    gameID = int(frame[16])
+                    team = frame[14]
+                    jerseyNum = int(frame[12])
+                    dataFromTracking[gameID][team][jerseyNum] = playerID
+
+        teamInfo = {}
+        gamesData = pd.read_csv(open(gamesDataFileName))
+        for game in tqdm(gamesData.itertuples(name=None)):
+            gameID = int(game[1])
+            teamInfo[gameID] = [*game[6:8]]
+        for gameID in tqdm(dataFromTracking):
+            homeAwayData = dataFromTracking[gameID]
+            teamAbbr = teamInfo[gameID]
+            teamData = {teamAbbr[0]: homeAwayData['home'], teamAbbr[1]: homeAwayData['away']}
+            dataFromTracking[gameID] = teamData
+        json.dump(dataFromTracking, open(playerAbbrFileName, 'w'))
+        self.playerDict = dataFromTracking
 
 
 

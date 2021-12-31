@@ -63,18 +63,17 @@ def transpose(listOfLists: [[]]) -> [[]]:
 
 
 class DownsizedData:
-    def __init__(self, fileName=None, data=None, csvData=None):
+    def __init__(self, data=None, csvData=None):
 
-        self.rawDataFileName = fileName
         self.playInfos = data
         self.playData = csvData
         self.plays = PlaysAnalysis().getUniquePlay()
         TacklePlayInfo.getPlays(self.plays)
 
-    def dataDownsizing(self) -> []:
+    def dataDownsizing(self, sourceName) -> []:
 
         print('downsizing data...')
-        rawData = pd.read_csv(self.rawDataFileName)
+        rawData = pd.read_csv(sourceName)
         print('finished loading tracking csv file')
 
         t0 = time()
@@ -321,8 +320,8 @@ class DownsizedData:
         if fromRawData:
             dataList = []
             for trackingDataFileName in fileNames['tracking']:
-                data = DownsizedData(trackingDataFileName)
-                playInfoData = data.dataDownsizing()
+                data = DownsizedData()
+                playInfoData = data.dataDownsizing(trackingDataFileName)
                 data.restructure(playInfoData, transposeCSV=True)
                 dataList.append(data)
             data = DownsizedData.combine(dataList)
