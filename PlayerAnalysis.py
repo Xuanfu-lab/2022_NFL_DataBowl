@@ -37,7 +37,7 @@ class PlayerAnalysis:
 
 
 
-    def getPlayerAbbr(self, new=False):
+    def getPlayerAbbr(self):
 
         playerDictList = json.load(open(playerAbbrFileName, 'r'))
         playerDict = {
@@ -80,12 +80,3 @@ class PlayerAnalysis:
             teamData = {teamAbbr[0]: homeAwayData['home'], teamAbbr[1]: homeAwayData['away']}
             dataFromTracking[gameID] = teamData
         json.dump(dataFromTracking, open(playerAbbrFileName, 'w'))
-        self.playerDict = dataFromTracking
-
-
-
-if __name__ == "__main__":
-    playerInfo = PlayerAnalysis()
-    playerInfo.getPlayerAbbr()
-    print(len(playerInfo.playerDict))
-    print(playerInfo.getPlayerIDFromAbbr(2018123000, 'BAL 26'))

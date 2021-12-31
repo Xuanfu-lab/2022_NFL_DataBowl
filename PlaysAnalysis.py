@@ -1,13 +1,14 @@
 import pandas as pd
 import json
 
+saveFileName = 'DownsizedData/plays.json'
+
 def uniquePlayID(gameID, playID):
     return gameID + playID * 10000000000
 
 
 class PlaysAnalysis:
     def __init__(self):
-        self.fileName = 'DownsizedData/plays.json'
         self.plays = None
 
 
@@ -16,8 +17,8 @@ class PlaysAnalysis:
 
 
 
-    def getUniquePlay(self, new=False):
-        playsData = json.load(open(self.fileName, 'r'))
+    def getUniquePlay(self):
+        playsData = json.load(open(saveFileName, 'r'))
         self.plays = {}
         for uid, play in playsData:
             self.plays[int(uid)] = play
@@ -41,12 +42,6 @@ class PlaysAnalysis:
                     continue
 
                 plays.append([uniquePlayID(row[1], row[2]), [returnerID, int(row[8] == 'Kickoff')]])
-        json.dump(plays, open(self.fileName, 'w'))
+        json.dump(plays, open(saveFileName, 'w'))
         print('finished fetching plays info')
-
-
-if __name__ == '__main__':
-    plays = PlaysAnalysis()
-    plays.getUniquePlay(new=True)
-
 

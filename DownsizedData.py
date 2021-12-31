@@ -1,8 +1,7 @@
 import pandas as pd
-from time import time, sleep
+from time import time
 from tqdm import tqdm
 import json
-from threading import Thread
 
 from PlaysAnalysis import PlaysAnalysis, uniquePlayID
 from TacklePlayInfo import TacklePlayInfo
@@ -126,7 +125,10 @@ class DownsizedData:
                     del (lastRow)
                     lastRow = newRow
                     newRow = next(rowIter)
-                    if lastRow is None or lastRow[10] != newRow[10]:
+                    if lastRow is None:
+                        playData.append(playerData)
+                        break
+                    if lastRow[10] != newRow[10]:
                         n = lastRow[15]
                         playData.append(playerData)
                         break
@@ -174,7 +176,9 @@ class DownsizedData:
                     lastRow = newRow
                     newRow = next(rowIter)
 
-                    if lastRow is None or lastRow[10] != newRow[10]:
+                    if lastRow is None:
+                        break
+                    if lastRow[10] != newRow[10]:
                         n = lastRow[15]
                         break
                 for _ in range(22 * n - 1):
@@ -331,34 +335,3 @@ class DownsizedData:
             data.load('DownsizedData/playInfo.json', 'DownsizedData/playData.csv')
         data.seperate0(save=True)
 
-
-if __name__ == '__main__':
-    years = [2018, 2019, 2020]
-    dataList = []
-    for year in years:
-        playInfoFileName = f'DownsizedData/playInfo{year}.json'
-        playDataFileName = f'DownsizedData/playData{year}.csv'
-        csvFileName = f'DownsizedData/combinedData{year}.csv'
-
-        data = DownsizedData(year)
-        playInfoData = data.dataDownsizing()
-        data.restructure(playInfoData, transposeCSV=True)
-        data.save(playInfoFileName, playDataFileName)
-
-        # data.load(playInfoFileName, playDataFileName)
-        dataList.append(data)
-    data = DownsizedData.combine(dataList)
-    data.save('DownsizedData/playInfo.json', 'DownsizedData/playData.csv')
-    data.saveToCSV(csvFileName, playInfoData)
-    data.seperate0(save=True)
-
-    # data.getUniquePlay(new=True)
-    # playInfoData = data.dataDownsizing()
-    # data.restructure(playInfoData, transposeCSV=True)
-    # data.save(playInfoFileName, playDataFileName)
-    # # data.load(playInfoFileName, playDataFileName)
-    # data.seperate0(save=True)
-    # data.saveToCSV(csvFileName, playInfoData)
-
-    # data.load(playInfoFileName, playDataFileName)
-    # data.testingProcesses()

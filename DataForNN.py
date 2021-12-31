@@ -2,12 +2,9 @@ from copy import copy
 
 import numpy as np
 import pandas as pd
-from time import time
 
 
 from DownsizedData import DownsizedData
-from PlaysAnalysis import uniquePlayID
-from TacklePlayInfo import TacklePlayInfo
 from ScountingAnalysis import ScountingAnalysis
 
 distanceStartIdx = 160
@@ -55,6 +52,7 @@ class DataForNN:
                     tacklerIdx += 1
                 tacklerIdxs.append((tacklerIdx, tackler[1]))
             playInfo.tacklerIdx = tacklerIdxs
+        print('finished adding tacklers')
         return data
 
     def addDistanceData(self, data):
@@ -68,6 +66,7 @@ class DataForNN:
         distanceData = distanceJIT(npData, returnerPos)
         npData = np.hstack([npData, distanceData])
         data.playData = npData
+        print('finished adding distance data')
         return data
 
     def framesToCSVForSpace(self, saveFileName=None):
@@ -95,6 +94,7 @@ class DataForNN:
             frameList.append(frameCSV)
         if saveFileName is not None:
             pd.DataFrame(frameList).to_csv(saveFileName)
+        print('frames To CSV For Space ready')
         return frameList
 
     def framesToCSVForNN(self, saveFileName=None):
@@ -116,6 +116,7 @@ class DataForNN:
             frameList.append(frameCSV)
         if saveFileName is not None:
             pd.DataFrame(frameList).to_csv(saveFileName)
+        print('framesToCSVForNN ready')
         return frameList
 
     def getKeyFrames(self, data: DownsizedData):
